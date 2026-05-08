@@ -9,8 +9,8 @@ const supabaseClient =
     SUPABASE_URL,
     SUPABASE_KEY
   );
-  
-  /* ========================= */
+
+/* ========================= */
 /* USERS */
 /* ========================= */
 
@@ -35,12 +35,6 @@ const users = [
 let currentUser = null;
 
 /* ========================= */
-/* DB */
-/* ========================= */
-
-let ticketsDB = [];
-
-/* ========================= */
 /* ELEMENTS */
 /* ========================= */
 
@@ -60,40 +54,49 @@ const statusBox =
 let okCount = 0;
 let dupCount = 0;
 let invalidCount = 0;
+
 let lastScan = "";
 let lastScanTime = 0;
 
-/* 🔊 ALERT SOUND */
+/* ========================= */
+/* ALERT SOUND */
+/* ========================= */
+
 const alertSound =
   new Audio(
     "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
   );
+
 /* ========================= */
 /* LOGIN */
 /* ========================= */
 
 document
-.getElementById("loginBtn")
-.addEventListener("click", login);
+  .getElementById("loginBtn")
+  .addEventListener(
+    "click",
+    login
+  );
 
 function login() {
 
   const username =
     document
-    .getElementById("username")
-    .value
-    .trim();
+      .getElementById("username")
+      .value
+      .trim();
 
   const password =
     document
-    .getElementById("password")
-    .value
-    .trim();
+      .getElementById("password")
+      .value
+      .trim();
 
   const user =
-    users.find(u =>
-      u.username === username &&
-      u.password === password
+    users.find(
+      u =>
+        u.username === username &&
+        u.password === password
     );
 
   /* ❌ INVALID LOGIN */
@@ -114,32 +117,22 @@ function login() {
 
   currentUser = user;
 
-  /* 🔓 OPEN SCANNER */
+  document
+    .getElementById("loginScreen")
+    .style.display = "none";
 
   document
-  .getElementById("loginScreen")
-  .style.display = "none";
-
-  document
-  .getElementById("scannerApp")
-  .style.display = "grid";
-
-  startScanner();
-
-  /* 👮 STAFF */
+    .getElementById("scannerApp")
+    .style.display = "grid";
 
   document
     .getElementById("staffDisplay")
     .innerText =
       `${user.username} (${user.role})`;
 
-  /* 📝 LOG */
-
   addLog(
     `🔐 Login: ${user.username}`
   );
-
-  /* 🚦 STATUS */
 
   updateStatus(
     "success",
@@ -147,53 +140,7 @@ function login() {
     `${user.role} | ${user.gate}`
   );
 
-}
-
-/* ========================= */
-/* LOAD CSV */
-/* ========================= */
-
-async function loadCSV() {
-
-  const res =
-    await fetch("tickets.csv");
-
-  const text =
-    await res.text();
-
-  const rows =
-    text.split("\n").slice(1);
-
-  ticketsDB = rows.map(row => {
-
-    const [
-      id,
-      name,
-      type,
-      used,
-      usedAt
-    ] = row.split(",");
-
-    return {
-
-      id: id?.trim(),
-
-      name: name?.trim(),
-
-      type: type?.trim(),
-
-      used: used === "true",
-
-      usedAt: usedAt || null
-
-    };
-
-  }).filter(t => t.id);
-
-  console.log(
-    "📄 Tickets cargados:",
-    ticketsDB
-  );
+  startScanner();
 
 }
 
@@ -221,7 +168,7 @@ async function validateTicket() {
 
   let ticketData = null;
 
-  let ticketId;
+  let ticketId = "";
 
   try {
 
@@ -230,11 +177,16 @@ async function validateTicket() {
 
     /* 🔐 CPASS FORMAT */
 
-    if (raw.startsWith("CPASS|")) {
+    if (
+      raw.startsWith("CPASS|")
+    ) {
 
       raw =
         atob(
-          raw.replace("CPASS|", "")
+          raw.replace(
+            "CPASS|",
+            ""
+          )
         );
 
     }
@@ -256,7 +208,10 @@ async function validateTicket() {
           "cosmic_secret"
         );
 
-      if (expected !== ticketData.hash) {
+      if (
+        expected !==
+        ticketData.hash
+      ) {
 
         triggerAlert();
 
@@ -279,9 +234,13 @@ async function validateTicket() {
   } catch {
 
     ticketId =
-      ticketInput.value.trim();
+      ticketInput.value
+        .trim();
 
   }
+
+  ticketId =
+    ticketId.trim();
 
   /* ❌ EMPTY */
 
@@ -297,12 +256,35 @@ async function validateTicket() {
 
   }
 
-  /* 🔍 FIND */
+  /* 🔍 QUERY SUPABASE */
 
-  const ticket =
-    ticketsDB.find(
-      item => item.id === ticketId
-    );
+  const {
+    data: ticket,
+    error
+  } = await supabaseClient
+
+    .from("qr_valida_tickets")
+
+    .select("*")
+
+    .eq("id", ticketId)
+
+    .single();
+
+  console.log(
+    "TICKET:",
+    ticket
+  );
+
+  console.log(
+    "ERROR:",
+    error
+  );
+
+  console.log(
+    "BUSCANDO:",
+    ticketId
+  );
 
   /* ❌ INVALID */
 
@@ -312,7 +294,8 @@ async function validateTicket() {
 
     document
       .getElementById("invalidCount")
-      .innerText = invalidCount;
+      .innerText =
+        invalidCount;
 
     triggerAlert();
 
@@ -331,134 +314,135 @@ async function validateTicket() {
     return;
 
   }
-/* 🔄 REFRESH TICKET */
 
-const {
-  data: freshTicket
-} = await supabaseClient
-
-  .from("qr_valida_tickets")
-
-  .select("*")
-
-  .eq("id", ticketId)
-
-  .single();
   /* 🚨 DUPLICATE */
 
-if (freshTicket.used) {
+  if (ticket.used) {
 
-  /* 🚨 DISCORD ALERT */
+    /* 🚨 DISCORD ALERT */
 
-  fetch(
-    "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
-    {
+    fetch(
+      "TU_DISCORD_WEBHOOK",
+      {
 
-      method: "POST",
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-      body: JSON.stringify({
+        body:
+          JSON.stringify({
 
-        username: "COSMIC SECURITY",
+            username:
+              "COSMIC SECURITY",
 
-        content:
+            content:
+
 `🚨 ALERTA — COSMIC PASS SECURITY
+
 Se detectó un intento de reutilización de ticket previamente validado.
 
 ━━━━━━━━━━━━━━━━━━
 
-🎫 Ticket comprometido:
+🎫 Ticket:
 ${ticket.id}
 
-👤 Portador registrado:
+👤 Nombre:
 ${ticket.name}
 
-🕒 Hora del incidente:
+🕒 Hora:
 ${new Date().toLocaleTimeString()}
 
-📍 Escáner activo:
+📍 Escáner:
 Entrada Principal
 
-👮 Operador en sesión:
+👮 Operador:
 ${currentUser.username}
 
 ━━━━━━━━━━━━━━━━━━
 
-⚠️ El mismo código QR fue escaneado más de una vez y el acceso fue bloqueado automáticamente por el sistema.
+⚠️ Acceso bloqueado automáticamente.
 
-🔎 Se recomienda verificar inmediatamente al portador para descartar:
-• Captura compartida del QR
-• Intento de acceso no autorizado
-• Uso simultáneo del mismo ticket
+🔎 Posibles causas:
+• QR compartido
+• Captura reutilizada
+• Reventa fraudulenta
+• Acceso simultáneo
 
-🛰️ Evento registrado exitosamente en el sistema de monitoreo en tiempo real de Cosmic Pass Security.`
+🛰️ Evento registrado en Cosmic Pass Security.`
 
-      })
+          })
 
-    }
+      }
 
-  );
+    );
 
-  dupCount++;
+    dupCount++;
 
-  document
-    .getElementById("dupCount")
-    .innerText = dupCount;
+    document
+      .getElementById("dupCount")
+      .innerText =
+        dupCount;
 
-  triggerAlert();
+    triggerAlert();
 
-  updateStatus(
-    "error",
-    "🚨 Ticket ya utilizado",
-    `${ticket.name} | Primer acceso:${freshTicket.used_at}`
-  );
+    updateStatus(
+      "error",
+      "🚨 Ticket ya utilizado",
+      `${ticket.name} | Primer acceso: ${ticket.used_at}`
+    );
 
-  addLog(
-    `🚨 Duplicado detectado: ${ticket.id}`
-  );
+    addLog(
+      `🚨 Duplicado detectado: ${ticket.id}`
+    );
 
-  ticketInput.value = "";
+    ticketInput.value = "";
 
-  return;
+    return;
 
-}
+  }
 
   /* ✅ MARK USED */
 
-ticket.used = true;
+  ticket.used = true;
 
-ticket.usedAt =
-  new Date().toLocaleTimeString();
+  ticket.used_at =
+    new Date()
+      .toLocaleTimeString();
 
-await supabaseClient
+  await supabaseClient
 
-  .from("qr_valida_tickets")
+    .from("qr_valida_tickets")
 
-  .update({
+    .update({
 
-    used: true,
+      used: true,
 
-    used_at:
-      ticket.usedAt
+      used_at:
+        ticket.used_at
 
-  })
+    })
 
-  .eq("id", ticket.id);
+    .eq("id", ticket.id);
+
+  /* ✅ SUCCESS */
 
   const displayName =
-    ticketData?.name || ticket.name;
+    ticketData?.name ||
+    ticket.name;
 
   const displayType =
-    ticketData?.type || ticket.type;
+    ticketData?.type ||
+    ticket.type;
 
   okCount++;
 
   document
     .getElementById("okCount")
-    .innerText = okCount;
+    .innerText =
+      okCount;
 
   updateStatus(
     "success",
@@ -507,10 +491,14 @@ function addLog(text) {
 
   const logs =
     document
-    .getElementById("logsContainer");
+      .getElementById(
+        "logsContainer"
+      );
 
   const item =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   item.className =
     "log-item";
@@ -532,11 +520,10 @@ function triggerAlert() {
     "alert-mode"
   );
 
-  /* 🔊 SOUND */
-
   alertSound.currentTime = 0;
 
-  alertSound.play()
+  alertSound
+    .play()
     .catch(err => {
 
       console.log(
@@ -560,19 +547,18 @@ function triggerAlert() {
 /* CAMERA QR */
 /* ========================= */
 
-/* ========================= */
-/* CAMERA QR */
-/* ========================= */
-
 function startScanner() {
 
   const scanner =
-    new Html5Qrcode("reader");
+    new Html5Qrcode(
+      "reader"
+    );
 
   scanner.start(
 
     {
-      facingMode: "environment"
+      facingMode:
+        "environment"
     },
 
     {
@@ -580,21 +566,33 @@ function startScanner() {
       qrbox: 250
     },
 
-    (decodedText) => {
+    decodedText => {
 
-      const now = Date.now();
+      const now =
+        Date.now();
 
       /* 🚫 BLOCK REPEATED */
 
       if (
-        decodedText === lastScan &&
-        now - lastScanTime < 3000
+
+        decodedText ===
+          lastScan &&
+
+        now -
+          lastScanTime <
+          3000
+
       ) {
+
         return;
+
       }
 
-      lastScan = decodedText;
-      lastScanTime = now;
+      lastScan =
+        decodedText;
+
+      lastScanTime =
+        now;
 
       ticketInput.value =
         decodedText;
@@ -652,40 +650,6 @@ validateBtn
 /* INIT */
 /* ========================= */
 
-async function loadTickets() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-
-    .from("qr_valida_tickets")
-
-    .select("*");
-
-  if (error) {
-
-    console.error(
-      "SUPABASE ERROR:",
-      error
-    );
-
-    return;
-
-  }
-
-  ticketsDB = data;
-
-  console.log(
-    "🎫 Tickets cargados:",
-    ticketsDB
-  );
-
-}
-
-
-/*loadCSV();*/
-loadTickets();
 addLog(
   "🟢 Sistema iniciado"
 );
