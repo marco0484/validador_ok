@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>
+    Cosmic Pass | QR Scanner
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  />
+
+  <!-- 📷 QR CAMERA -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+</head>
+
+<body>
+
+  <!-- ======================================== -->
+  <!-- 🔐 LOGIN SCREEN -->
+  <!-- ======================================== -->
+
+  <div
+    id="loginScreen"
+    class="login-screen"
+  >
+
+    <div class="login-card">
+
+      <h1 class="login-logo">
+        COSMIC PASS
+      </h1>
+
+      <p class="login-subtitle">
+        Sistema Seguro de Validación
+      </p>
+
+      <div class="login-box">
+
+        <input
+          type="text"
+          id="username"
+          placeholder="Usuario"
+        />
+
+        <input
+          type="password"
+          id="password"
+          placeholder="Contraseña"
+        />
+
+        <button id="loginBtn">
+          Iniciar Sesión
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ======================================== -->
+  <!-- 🎫 SCANNER APP -->
+  <!-- ======================================== -->
+
+  <main
+    class="app"
+    id="scannerApp"
+    style="display:none;"
+  >
+
+    <!-- ======================================== -->
+    <!-- 🎫 SCANNER PANEL -->
+    <!-- ======================================== -->
+
+    <section class="card scanner-panel">
+
+      <h1>
+        Cosmic Pass Scanner
+      </h1>
+
+      <p class="subtitle">
+        Validación local antifraude
+        para acceso seguro de eventos.
+      </p>
+
+      <!-- 🎫 SCANNER BOX -->
+
+      <div class="scanner-box">
+
+        <div class="scanner-icon">
+          🎫
+        </div>
+
+        <p>
+          Escanea el QR o pega manualmente el ticket
+        </p>
+
+      </div>
+
+      <!-- 📷 CAMERA -->
+<div class="reader-wrapper">
+
+  <div id="reader"></div>
+
+  <div class="sacred-overlay"></div>
+
+</div>
+
+      <!-- ✍️ MANUAL INPUT -->
+
+      <input
+        type="text"
+        id="ticketInput"
+        placeholder="Escaneo manual / QR"
+      />
+
+      <!-- ✅ VALIDATE -->
+
+      <button
+        id="validateBtn"
+        class="primary"
+      >
+        Validar Ticket
+      </button>
+
+      <!-- 🚦 STATUS -->
+
+      <section
+        id="statusBox"
+        class="status warning"
+      >
+
+        Esperando escaneo...
+
+        <div class="meta">
+          Sistema local listo para validación
+        </div>
+
+      </section>
+
+    </section>
+
+    <!-- ======================================== -->
+    <!-- 📊 CONTROL PANEL -->
+    <!-- ======================================== -->
+
+    <aside class="card control-panel">
+
+      <h2 class="panel-title">
+        Control de Acceso
+      </h2>
+
+      <!-- 👮 STAFF -->
+
+      <div class="staff-box">
+
+        <p>
+          <strong>Staff:</strong>
+
+          <span id="staffDisplay">
+            No identificado
+          </span>
+        </p>
+
+        <p>
+          <strong>Gate:</strong>
+          Entrada Principal
+        </p>
+
+        <p>
+          <strong>Modo:</strong>
+          🟢 Offline Local
+        </p>
+
+      </div>
+
+      <!-- 📈 COUNTERS -->
+
+      <div class="counter-box">
+
+        <p>
+          ✅ Ingresos:
+          <span id="okCount">0</span>
+        </p>
+
+        <p>
+          🚨 Duplicados:
+          <span id="dupCount">0</span>
+        </p>
+
+        <p>
+          ❌ Inválidos:
+          <span id="invalidCount">0</span>
+        </p>
+
+      </div>
+
+      <!-- 📝 LOGS -->
+
+      <h3>
+        Últimos escaneos
+      </h3>
+
+      <div id="logsContainer">
+
+        <div class="log-item">
+          Sistema iniciado correctamente
+        </div>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- ======================================== -->
+  <!-- ⚙️ SCRIPT -->
+  <!-- ======================================== -->
+
+  <script src="script.js"></script>
+
+</body>
+
+</html>
