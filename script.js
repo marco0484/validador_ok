@@ -1,4 +1,16 @@
-/* ========================= */
+const SUPABASE_URL =
+  "https://caoqqzzwwpiivmqqeigw.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_4FaRj7XuzifYgPa8BjtO8A_C46t5q0Q";
+
+const supabaseClient =
+  supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+  
+  /* ========================= */
 /* USERS */
 /* ========================= */
 
@@ -189,7 +201,7 @@ async function loadCSV() {
 /* VALIDATE */
 /* ========================= */
 
-function validateTicket() {
+async function validateTicket() {
 
   /* 🔒 LOGIN REQUIRED */
 
@@ -319,10 +331,22 @@ function validateTicket() {
     return;
 
   }
+/* 🔄 REFRESH TICKET */
 
+const {
+  data: freshTicket
+} = await supabaseClient
+
+  .from("tickets")
+
+  .select("*")
+
+  .eq("id", ticketId)
+
+  .single();
   /* 🚨 DUPLICATE */
 
-if (ticket.used) {
+if (freshTicket.used) {
 
   /* 🚨 DISCORD ALERT */
 
@@ -389,7 +413,7 @@ ${currentUser.username}
   updateStatus(
     "error",
     "🚨 Ticket ya utilizado",
-    `${ticket.name} | Primer acceso: ${ticket.usedAt}`
+    `${ticket.name} | Primer acceso:${freshTicket.used_at}`
   );
 
   addLog(
@@ -404,10 +428,25 @@ ${currentUser.username}
 
   /* ✅ MARK USED */
 
-  ticket.used = true;
+ticket.used = true;
 
-  ticket.usedAt =
-    new Date().toLocaleTimeString();
+ticket.usedAt =
+  new Date().toLocaleTimeString();
+
+await supabaseClient
+
+  .from("tickets")
+
+  .update({
+
+    used: true,
+
+    used_at:
+      ticket.usedAt
+
+  })
+
+  .eq("id", ticket.id);
 
   const displayName =
     ticketData?.name || ticket.name;
@@ -613,7 +652,40 @@ validateBtn
 /* INIT */
 /* ========================= */
 
-loadCSV();
+async function loadTickets() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+
+    .from("tickets")
+
+    .select("*");
+
+  if (error) {
+
+    console.error(
+      "SUPABASE ERROR:",
+      error
+    );
+
+    return;
+
+  }
+
+  ticketsDB = data;
+
+  console.log(
+    "🎫 Tickets cargados:",
+    ticketsDB
+  );
+
+}
+
+
+/*loadCSV();*/
+loadTickets();
 addLog(
   "🟢 Sistema iniciado"
 );
