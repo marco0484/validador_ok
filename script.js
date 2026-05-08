@@ -355,7 +355,7 @@ async function validateTicket() {
       const response =
         await fetch(
 
-          "TU_DISCORD_WEBHOOK",
+          "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
 
           {
             method: "POST",
