@@ -51,7 +51,11 @@ let invalidCount = 0;
 let lastScan = "";
 let lastScanTime = 0;
 
-
+/* 🔊 ALERT SOUND */
+const alertSound =
+  new Audio(
+    "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+  );
 /* ========================= */
 /* LOGIN */
 /* ========================= */
@@ -337,32 +341,36 @@ if (ticket.used) {
         username: "COSMIC SECURITY",
 
         content:
-`🚨 ALERTA DE SEGURIDAD — COSMIC PASS
+`🚨 ALERTA — COSMIC PASS SECURITY
+Se detectó un intento de reutilización de ticket previamente validado.
 
-Se ha detectado un intento de acceso con un ticket previamente validado.
+━━━━━━━━━━━━━━━━━━
 
-🎫 Ticket:
+🎫 Ticket comprometido:
 ${ticket.id}
 
-👤 Nombre:
+👤 Portador registrado:
 ${ticket.name}
 
 🕒 Hora del incidente:
 ${new Date().toLocaleTimeString()}
 
-📍 Escáner / Gate:
+📍 Escáner activo:
 Entrada Principal
 
-👮 Operador activo:
+👮 Operador en sesión:
 ${currentUser.username}
 
-━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━
 
-⚠️ El acceso fue bloqueado automáticamente por el sistema antifraude de Cosmic Pass.
+⚠️ El mismo código QR fue escaneado más de una vez y el acceso fue bloqueado automáticamente por el sistema.
 
-Se recomienda verificar la autenticidad del portador y validar si existe intento de duplicación, reventa o reutilización del código QR.
+🔎 Se recomienda verificar inmediatamente al portador para descartar:
+• Captura compartida del QR
+• Intento de acceso no autorizado
+• Uso simultáneo del mismo ticket
 
-🛰️ Evento registrado correctamente en el sistema de monitoreo en tiempo real.`
+🛰️ Evento registrado exitosamente en el sistema de monitoreo en tiempo real de Cosmic Pass Security.`
 
       })
 
@@ -485,12 +493,19 @@ function triggerAlert() {
     "alert-mode"
   );
 
-  const audio =
-    new Audio(
-      "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
-    );
+  /* 🔊 SOUND */
 
-  audio.play();
+  alertSound.currentTime = 0;
+
+  alertSound.play()
+    .catch(err => {
+
+      console.log(
+        "Audio bloqueado:",
+        err
+      );
+
+    });
 
   setTimeout(() => {
 
