@@ -337,7 +337,7 @@ const {
   data: freshTicket
 } = await supabaseClient
 
-  .from("tickets")
+  .from("qr_valida_tickets")
 
   .select("*")
 
@@ -435,7 +435,7 @@ ticket.usedAt =
 
 await supabaseClient
 
-  .from("tickets")
+  .from("qr_valida_tickets")
 
   .update({
 
@@ -659,7 +659,7 @@ async function loadTickets() {
     error
   } = await supabaseClient
 
-    .from("tickets")
+    .from("qr_valida_tickets")
 
     .select("*");
 
