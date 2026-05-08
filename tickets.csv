@@ -2,7 +2,9 @@ id,name,type,used,usedAt
 NYX-AAA111,Marco,VIP,False,
 NYX-BBB222,Ana,General,False,
 NYX-CCC333,Luis,Cortesía,True,10:30 p. m.
-NYX-D468B3D54919FBC59EF67894,test,Cortesía,True,
+NYX-D468B3D54919FBC59EF67894,NOPASA,Cortesía,True,10:30 p. m.
+NYX-3BF469D428EDC8A565F3CF30,PASA,Cortesía,False,
+,,,,
 ,,,,
 ,,,,
 ,,,,
