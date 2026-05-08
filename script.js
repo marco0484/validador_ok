@@ -1,8 +1,44 @@
+/* ========================= */
+/* FORCE NO CACHE */
+/* ========================= */
+
+if ('caches' in window) {
+
+  caches.keys().then(names => {
+
+    names.forEach(name => {
+
+      caches.delete(name);
+
+    });
+
+  });
+
+}
+
+/* HARD RELOAD */
+
+window.onpageshow = function(event) {
+
+  if (
+    event.persisted
+  ) {
+
+    window.location.reload();
+
+  }
+
+};
+
+/* ========================= */
+/* SUPABASE */
+/* ========================= */
+
 const SUPABASE_URL =
   "https://caoqqzzwwpiivmqqeigw.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_4FaRj7XuzifYgPa8BjtO8A_C46t5q0Q";
+  "TU_SUPABASE_KEY";
 
 const supabaseClient =
   supabase.createClient(
@@ -39,13 +75,19 @@ let currentUser = null;
 /* ========================= */
 
 const ticketInput =
-  document.getElementById("ticketInput");
+  document.getElementById(
+    "ticketInput"
+  );
 
 const validateBtn =
-  document.getElementById("validateBtn");
+  document.getElementById(
+    "validateBtn"
+  );
 
 const statusBox =
-  document.getElementById("statusBox");
+  document.getElementById(
+    "statusBox"
+  );
 
 /* ========================= */
 /* COUNTERS */
@@ -72,7 +114,9 @@ const alertSound =
 /* ========================= */
 
 document
-  .getElementById("loginBtn")
+  .getElementById(
+    "loginBtn"
+  )
   .addEventListener(
     "click",
     login
@@ -82,13 +126,17 @@ function login() {
 
   const username =
     document
-      .getElementById("username")
+      .getElementById(
+        "username"
+      )
       .value
       .trim();
 
   const password =
     document
-      .getElementById("password")
+      .getElementById(
+        "password"
+      )
       .value
       .trim();
 
@@ -98,8 +146,6 @@ function login() {
         u.username === username &&
         u.password === password
     );
-
-  /* ❌ INVALID LOGIN */
 
   if (!user) {
 
@@ -113,20 +159,24 @@ function login() {
 
   }
 
-  /* ✅ LOGIN OK */
-
   currentUser = user;
 
   document
-    .getElementById("loginScreen")
+    .getElementById(
+      "loginScreen"
+    )
     .style.display = "none";
 
   document
-    .getElementById("scannerApp")
+    .getElementById(
+      "scannerApp"
+    )
     .style.display = "grid";
 
   document
-    .getElementById("staffDisplay")
+    .getElementById(
+      "staffDisplay"
+    )
     .innerText =
       `${user.username} (${user.role})`;
 
@@ -149,8 +199,6 @@ function login() {
 /* ========================= */
 
 async function validateTicket() {
-
-  /* 🔒 LOGIN REQUIRED */
 
   if (!currentUser) {
 
@@ -175,10 +223,10 @@ async function validateTicket() {
     let raw =
       ticketInput.value.trim();
 
-    /* 🔐 CPASS FORMAT */
-
     if (
-      raw.startsWith("CPASS|")
+      raw.startsWith(
+        "CPASS|"
+      )
     ) {
 
       raw =
@@ -197,9 +245,9 @@ async function validateTicket() {
     ticketId =
       ticketData.id;
 
-    /* 🔐 HASH VALIDATION */
-
-    if (ticketData.hash) {
+    if (
+      ticketData.hash
+    ) {
 
       const expected =
         btoa(
@@ -242,8 +290,6 @@ async function validateTicket() {
   ticketId =
     ticketId.trim();
 
-  /* ❌ EMPTY */
-
   if (!ticketId) {
 
     updateStatus(
@@ -256,18 +302,25 @@ async function validateTicket() {
 
   }
 
-  /* 🔍 QUERY SUPABASE */
+  /* ========================= */
+  /* QUERY SUPABASE */
+  /* ========================= */
 
   const {
     data: ticket,
     error
   } = await supabaseClient
 
-    .from("qr_valida_tickets")
+    .from(
+      "qr_valida_tickets"
+    )
 
     .select("*")
 
-    .eq("id", ticketId)
+    .eq(
+      "id",
+      ticketId
+    )
 
     .single();
 
@@ -286,14 +339,18 @@ async function validateTicket() {
     ticketId
   );
 
-  /* ❌ INVALID */
+  /* ========================= */
+  /* INVALID */
+  /* ========================= */
 
   if (!ticket) {
 
     invalidCount++;
 
     document
-      .getElementById("invalidCount")
+      .getElementById(
+        "invalidCount"
+      )
       .innerText =
         invalidCount;
 
@@ -315,36 +372,40 @@ async function validateTicket() {
 
   }
 
-  /* 🚨 DUPLICATE */
+  /* ========================= */
+  /* DUPLICATE */
+  /* ========================= */
 
   if (ticket.used) {
 
-    /* 🚨 DISCORD ALERT */
+    console.log(
+      "🚨 ENVIANDO ALERTA DISCORD"
+    );
 
-    fetch(
-  "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
-      {
+    try {
 
-        method: "POST",
+      const response =
+        await fetch(
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
+          "TU_DISCORD_WEBHOOK",
 
-        body:
-          JSON.stringify({
+          {
+            method: "POST",
 
-            username:
-              "COSMIC SECURITY",
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
 
-            content:
+            body:
+              JSON.stringify({
+
+                username:
+                  "COSMIC SECURITY",
+
+                content:
 
 `🚨 ALERTA — COSMIC PASS SECURITY
-
-Se detectó un intento de reutilización de ticket previamente validado.
-
-━━━━━━━━━━━━━━━━━━
 
 🎫 Ticket:
 ${ticket.id}
@@ -361,28 +422,42 @@ Entrada Principal
 👮 Operador:
 ${currentUser.username}
 
-━━━━━━━━━━━━━━━━━━
+⚠️ Ticket duplicado detectado.`
 
-⚠️ Acceso bloqueado automáticamente.
+              })
 
-🔎 Posibles causas:
-• QR compartido
-• Captura reutilizada
-• Reventa fraudulenta
-• Acceso simultáneo
+          }
 
-🛰️ Evento registrado en Cosmic Pass Security.`
+        );
 
-          })
+      console.log(
+        "DISCORD STATUS:",
+        response.status
+      );
 
-      }
+      const text =
+        await response.text();
 
-    );
+      console.log(
+        "DISCORD RESPONSE:",
+        text
+      );
+
+    } catch(err) {
+
+      console.error(
+        "DISCORD ERROR:",
+        err
+      );
+
+    }
 
     dupCount++;
 
     document
-      .getElementById("dupCount")
+      .getElementById(
+        "dupCount"
+      )
       .innerText =
         dupCount;
 
@@ -404,7 +479,9 @@ ${currentUser.username}
 
   }
 
-  /* ✅ MARK USED */
+  /* ========================= */
+  /* MARK USED */
+  /* ========================= */
 
   ticket.used = true;
 
@@ -414,7 +491,9 @@ ${currentUser.username}
 
   await supabaseClient
 
-    .from("qr_valida_tickets")
+    .from(
+      "qr_valida_tickets"
+    )
 
     .update({
 
@@ -425,9 +504,14 @@ ${currentUser.username}
 
     })
 
-    .eq("id", ticket.id);
+    .eq(
+      "id",
+      ticket.id
+    );
 
-  /* ✅ SUCCESS */
+  /* ========================= */
+  /* SUCCESS */
+  /* ========================= */
 
   const displayName =
     ticketData?.name ||
@@ -440,7 +524,9 @@ ${currentUser.username}
   okCount++;
 
   document
-    .getElementById("okCount")
+    .getElementById(
+      "okCount"
+    )
     .innerText =
       okCount;
 
@@ -501,7 +587,7 @@ function addLog(text) {
     );
 
   item.className =
-    "log-item";
+      "log-item";
 
   item.innerText =
     `${new Date().toLocaleTimeString()} - ${text}`;
@@ -570,8 +656,6 @@ function startScanner() {
 
       const now =
         Date.now();
-
-      /* 🚫 BLOCK REPEATED */
 
       if (
 
