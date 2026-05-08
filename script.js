@@ -1,36 +1,4 @@
 /* ========================= */
-/* FORCE NO CACHE */
-/* ========================= */
-
-if ('caches' in window) {
-
-  caches.keys().then(names => {
-
-    names.forEach(name => {
-
-      caches.delete(name);
-
-    });
-
-  });
-
-}
-
-/* HARD RELOAD */
-
-window.onpageshow = function(event) {
-
-  if (
-    event.persisted
-  ) {
-
-    window.location.reload();
-
-  }
-
-};
-
-/* ========================= */
 /* SUPABASE */
 /* ========================= */
 
@@ -38,7 +6,7 @@ const SUPABASE_URL =
   "https://caoqqzzwwpiivmqqeigw.supabase.co";
 
 const SUPABASE_KEY =
-  "TU_SUPABASE_KEY";
+  "sb_publishable_4FaRj7XuzifYgPa8BjtO8A_C46t5q0Q";
 
 const supabaseClient =
   supabase.createClient(
