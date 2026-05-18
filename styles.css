@@ -354,6 +354,27 @@ h1{
 
 }
 
+.cosmic-line{
+
+  width:140px;
+
+  height:2px;
+
+  margin:0 auto 24px auto;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      #22d3ee,
+      transparent
+    );
+
+  box-shadow:
+    0 0 18px #22d3ee;
+
+}
+
 @keyframes loginShine{
 
   0%{
@@ -366,22 +387,61 @@ h1{
 
 }
 
+.login-card::after{
+
+  content:"";
+
+  position:absolute;
+
+  inset:-120px;
+
+  background:
+
+    radial-gradient(
+      circle,
+      rgba(124,58,237,.18),
+      transparent 60%
+    );
+
+  z-index:-1;
+
+  animation:
+    cosmicRotate 12s linear infinite;
+
+}
+
+@keyframes cosmicRotate{
+
+  from{
+    transform:rotate(0deg);
+  }
+
+  to{
+    transform:rotate(360deg);
+  }
+
+}
 .login-logo{
 
-  font-size:48px;
+  font-size:72px;
+
+  line-height:.9;
 
   text-align:center;
 
-  margin-bottom:14px;
+  margin-top:10px;
 
-  letter-spacing:6px;
+  margin-bottom:20px;
 
-  font-weight:800;
+  letter-spacing:10px;
+
+  font-weight:900;
 
   color:#fff;
 
   text-shadow:
-    0 0 20px rgba(124,58,237,.7);
+    0 0 20px rgba(124,58,237,.9),
+    0 0 50px rgba(124,58,237,.45);
 
 }
 
@@ -398,6 +458,70 @@ h1{
   letter-spacing:2px;
 
   text-transform:uppercase;
+
+}
+
+/* ========================= */
+/* SYSTEM STATUS */
+/* ========================= */
+
+.system-status{
+
+  margin-top:-10px;
+
+  margin-bottom:28px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:10px;
+
+  font-size:11px;
+
+  letter-spacing:3px;
+
+  color:#22d3ee;
+
+  text-transform:uppercase;
+
+}
+
+.status-dot{
+
+  width:10px;
+  height:10px;
+
+  border-radius:50%;
+
+  background:#22d3ee;
+
+  box-shadow:
+    0 0 10px #22d3ee;
+
+  animation:
+    pulseDot 1.5s infinite;
+
+}
+
+@keyframes pulseDot{
+
+  0%{
+    opacity:.4;
+    transform:scale(.9);
+  }
+
+  50%{
+    opacity:1;
+    transform:scale(1.2);
+  }
+
+  100%{
+    opacity:.4;
+    transform:scale(.9);
+  }
 
 }
 
@@ -568,9 +692,8 @@ h1{
   border-radius:20px;
 
 }
-
 /* ========================= */
-/* SACRED OVERLAY */
+/* FUTURE HUD */
 /* ========================= */
 
 .sacred-overlay{
@@ -579,11 +702,13 @@ h1{
 
   inset:0;
 
-  z-index:5;
+  z-index:6;
 
   pointer-events:none;
 
 }
+
+/* FRAME */
 
 .sacred-overlay::before{
 
@@ -591,93 +716,20 @@ h1{
 
   position:absolute;
 
-  top:50%;
-  left:50%;
+  inset:18px;
 
-  width:240px;
-  height:240px;
+  border-radius:28px;
 
-  transform:
-    translate(-50%,-50%);
+  border:
+    1px solid rgba(34,211,238,.22);
 
-  border-radius:50%;
-
-  opacity:.9;
-
-  background-image:
-
-    radial-gradient(
-      circle,
-      transparent 64%,
-      rgba(124,58,237,.95) 66%,
-      transparent 68%
-    ),
-
-    radial-gradient(
-      circle at 50% 18%,
-      transparent 18%,
-      rgba(124,58,237,.9) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 50% 82%,
-      transparent 18%,
-      rgba(124,58,237,.9) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 18% 50%,
-      transparent 18%,
-      rgba(124,58,237,.9) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 82% 50%,
-      transparent 18%,
-      rgba(124,58,237,.9) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 30% 30%,
-      transparent 18%,
-      rgba(124,58,237,.75) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 70% 30%,
-      transparent 18%,
-      rgba(124,58,237,.75) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 30% 70%,
-      transparent 18%,
-      rgba(124,58,237,.75) 20%,
-      transparent 22%
-    ),
-
-    radial-gradient(
-      circle at 70% 70%,
-      transparent 18%,
-      rgba(124,58,237,.75) 20%,
-      transparent 22%
-    );
-
-  filter:
-    drop-shadow(
-      0 0 18px rgba(124,58,237,.75)
-    );
-
-  animation:
-    sacredRotate 18s linear infinite;
+  box-shadow:
+    inset 0 0 12px rgba(34,211,238,.08),
+    0 0 12px rgba(34,211,238,.12);
 
 }
+
+/* TARGET AREA */
 
 .sacred-overlay::after{
 
@@ -688,38 +740,121 @@ h1{
   top:50%;
   left:50%;
 
-  width:14px;
-  height:14px;
+  width:220px;
+  height:220px;
 
   transform:
     translate(-50%,-50%);
 
-  border-radius:50%;
+  border-radius:26px;
 
-  background:#7c3aed;
+  border:
+    2px solid rgba(34,211,238,.85);
 
   box-shadow:
-    0 0 30px #7c3aed;
+    0 0 10px rgba(34,211,238,.35),
+    inset 0 0 12px rgba(34,211,238,.08);
+
+  animation:
+    hudPulse 2s ease infinite;
 
 }
 
-@keyframes sacredRotate{
+@keyframes hudPulse{
 
-  from{
+  0%{
 
-    transform:
-      translate(-50%,-50%)
-      rotate(0deg);
-
-  }
-
-  to{
+    opacity:.6;
 
     transform:
       translate(-50%,-50%)
-      rotate(360deg);
+      scale(1);
 
   }
+
+  50%{
+
+    opacity:1;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1.03);
+
+  }
+
+  100%{
+
+    opacity:.6;
+
+    transform:
+      translate(-50%,-50%)
+      scale(1);
+
+  }
+
+}
+
+/* ========================= */
+/* HUD CORNERS */
+/* ========================= */
+
+.reader-wrapper{
+
+  position:relative;
+
+}
+
+.reader-wrapper .corner{
+
+  position:absolute;
+
+  width:60px;
+  height:60px;
+
+  border-color:#22d3ee;
+
+  border-style:solid;
+
+  z-index:8;
+
+  filter:
+    drop-shadow(0 0 4px #22d3ee);
+
+}
+
+.corner-tl{
+
+  top:20px;
+  left:20px;
+
+  border-width:4px 0 0 4px;
+
+}
+
+.corner-tr{
+
+  top:20px;
+  right:20px;
+
+  border-width:4px 4px 0 0;
+
+}
+
+.corner-bl{
+
+  bottom:20px;
+  left:20px;
+
+  border-width:0 0 4px 4px;
+
+}
+
+.corner-br{
+
+  bottom:20px;
+  right:20px;
+
+  border-width:0 4px 4px 0;
 
 }
 

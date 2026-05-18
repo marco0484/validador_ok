@@ -2,6 +2,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
 <html lang="es">
 
 <head>
@@ -38,33 +39,116 @@
     class="login-screen"
   >
 
+    <!-- 🌌 BACKGROUND FX -->
+
+    <div class="login-grid"></div>
+
+    <div class="login-glow glow-1"></div>
+    <div class="login-glow glow-2"></div>
+
+    <!-- 🔐 LOGIN CARD -->
+
     <div class="login-card">
+
+      <!-- 🌐 TOP STATUS -->
+
+      <div class="login-topbar">
+
+        <span class="topbar-dot"></span>
+      </div>
+
+      <!-- 🛸 LOGO -->
+
+      <div class="login-symbol">
+
+        <div class="symbol-ring"></div>
+        <div class="symbol-core"></div>
+
+      </div>
+
+      <!-- 🪐 TITLE -->
 
       <h1 class="login-logo">
         COSMIC PASS
       </h1>
 
+      <div class="cosmic-line"></div>
+
+      <!-- 🛰️ SUBTITLE -->
+
       <p class="login-subtitle">
         Sistema Seguro de Validación
       </p>
 
+      <!-- 📡 SYSTEM STATUS -->
+
+      <div class="system-status">
+
+        <span class="status-dot"></span>
+
+        Encrypted Local Validation Active
+
+      </div>
+
+      <!-- 🔐 LOGIN FORM -->
+
       <div class="login-box">
 
-        <input
-          type="text"
-          id="username"
-          placeholder="Usuario"
-        />
+        <!-- 👤 USER -->
 
-        <input
-          type="password"
-          id="password"
-          placeholder="Contraseña"
-        />
+        <div class="input-wrapper">
+
+          <div class="input-label">
+            USERNAME
+          </div>
+
+          <input
+            type="text"
+            id="username"
+            placeholder="Operador"
+          />
+
+        </div>
+
+        <!-- 🔑 PASSWORD -->
+
+        <div class="input-wrapper">
+
+          <div class="input-label">
+            ACCESS KEY
+          </div>
+
+          <input
+            type="password"
+            id="password"
+            placeholder="••••••••••"
+          />
+
+        </div>
+
+        <!-- 🚀 LOGIN BUTTON -->
 
         <button id="loginBtn">
-          Iniciar Sesión
+
+          <span class="btn-glow"></span>
+
+          INICIAR SESIÓN
+
         </button>
+
+      </div>
+
+      <!-- 🧠 FOOTER -->
+
+      <div class="login-footer">
+
+        <div>
+          SECURITY NODE • CDMX-01
+        </div>
+
+        <div>
+          COSMIC PASS OS v2.0
+        </div>
 
       </div>
 
@@ -112,13 +196,23 @@
       </div>
 
       <!-- 📷 CAMERA -->
-<div class="reader-wrapper">
 
-  <div id="reader"></div>
+      <div class="reader-wrapper">
 
-  <div class="sacred-overlay"></div>
+        <div id="reader"></div>
 
-</div>
+        <!-- 🛰️ HUD -->
+
+        <div class="sacred-overlay"></div>
+
+        <!-- 🔲 CORNERS -->
+
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
+      </div>
 
       <!-- ✍️ MANUAL INPUT -->
 
@@ -139,32 +233,34 @@
 
       <!-- 🚦 STATUS -->
 
-     <section
-  id="statusBox"
-  class="status warning"
->
+      <section
+        id="statusBox"
+        class="status warning"
+      >
 
-  <div class="status-icon">
-    ◎
-  </div>
+        <div class="status-icon">
+          ◎
+        </div>
 
-  <div class="status-content">
+        <div class="status-content">
 
-    <div class="status-title">
-      SISTEMA LISTO
-    </div>
+          <div class="status-title">
+            SISTEMA LISTO
+          </div>
 
-    <div class="status-subtitle">
-      Esperando escaneo de ticket
-    </div>
+          <div class="status-subtitle">
+            Esperando escaneo de ticket
+          </div>
 
-    <div class="status-meta">
-      LOCAL VALIDATION ACTIVE
-    </div>
+          <div class="status-meta">
+            LOCAL VALIDATION ACTIVE
+          </div>
 
-  </div>
+        </div>
 
-</section>
+      </section>
+
+    </section>
 
     <!-- ======================================== -->
     <!-- 📊 CONTROL PANEL -->
@@ -242,7 +338,9 @@
   <!-- ======================================== -->
   <!-- ⚙️ SCRIPT -->
   <!-- ======================================== -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
   <script src="script.js"></script>
 
 </body>
