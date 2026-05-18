@@ -152,11 +152,12 @@ function login() {
     `🔐 Login: ${user.username}`
   );
 
-  updateStatus(
-    "success",
-    "✅ Sesión iniciada",
-    `${user.role} | ${user.gate}`
-  );
+ updateStatus(
+  "success",
+  "SISTEMA ACTIVO",
+  `${user.role} • ${user.gate}`,
+  "AUTHENTICATION SUCCESS"
+);
 
   startScanner();
 
@@ -173,10 +174,11 @@ async function validateTicket() {
     triggerAlert();
 
     updateStatus(
-      "warning",
-      "🔒 Inicia sesión",
-      "Debes autenticarte primero"
-    );
+  "warning",
+  "ACCESO RESTRINGIDO",
+  "Debes iniciar sesión",
+  "LOGIN REQUIRED"
+);
 
     return;
 
@@ -325,10 +327,11 @@ async function validateTicket() {
     triggerAlert();
 
     updateStatus(
-      "error",
-      "❌ Ticket no válido",
-      "El ticket no existe"
-    );
+  "error",
+  "ACCESO DENEGADO",
+  "El ticket no existe",
+  "INVALID TICKET"
+);
 
     addLog(
       `❌ Ticket inválido: ${ticketId}`
@@ -432,10 +435,11 @@ ${currentUser.username}
     triggerAlert();
 
     updateStatus(
-      "error",
-      "🚨 Ticket ya utilizado",
-      `${ticket.name} | Primer acceso: ${ticket.used_at}`
-    );
+  "error",
+  "TICKET DUPLICADO",
+  `${ticket.name}`,
+  `PRIMER ACCESO ${ticket.used_at}`
+);
 
     addLog(
       `🚨 Duplicado detectado: ${ticket.id}`
@@ -499,10 +503,11 @@ ${currentUser.username}
       okCount;
 
   updateStatus(
-    "success",
-    "✅ Acceso permitido",
-    `${displayName} | ${displayType}`
-  );
+  "success",
+  "ACCESO AUTORIZADO",
+  displayName,
+  displayType
+);
 
   addLog(
     `✅ ${currentUser.username} autorizó ${ticket.id} (${displayName})`
@@ -518,19 +523,108 @@ ${currentUser.username}
 
 function updateStatus(
   type,
-  message,
+  title,
+  subtitle,
   meta
 ) {
 
   statusBox.className =
     `status ${type}`;
 
+  let icon = "◎";
+
+  if (type === "success") {
+    icon = "✓";
+  }
+
+  if (type === "error") {
+    icon = "✕";
+  }
+
+  if (type === "warning") {
+    icon = "⚠";
+  }
+
+  document.body.classList.remove(
+  "scan-success",
+  "scan-duplicate",
+  "scan-invalid"
+);
+
+if (type === "success") {
+
+  document.body.classList.add(
+    "scan-success"
+  );
+
+  setTimeout(() => {
+
+    document.body.classList.remove(
+      "scan-success"
+    );
+
+  }, 600);
+
+}
+
+if (
+  type === "error" &&
+  title.includes("DUPLICADO")
+) {
+
+  document.body.classList.add(
+    "scan-duplicate"
+  );
+
+  setTimeout(() => {
+
+    document.body.classList.remove(
+      "scan-duplicate"
+    );
+
+  }, 2000);
+
+}
+
+if (
+  type === "error" &&
+  title.includes("DENEGADO")
+) {
+
+  document.body.classList.add(
+    "scan-invalid"
+  );
+
+  setTimeout(() => {
+
+    document.body.classList.remove(
+      "scan-invalid"
+    );
+
+  }, 1600);
+
+}
+
   statusBox.innerHTML = `
 
-    ${message}
+    <div class="status-icon">
+      ${icon}
+    </div>
 
-    <div class="meta">
-      ${meta}
+    <div class="status-content">
+
+      <div class="status-title">
+        ${title}
+      </div>
+
+      <div class="status-subtitle">
+        ${subtitle}
+      </div>
+
+      <div class="status-meta">
+        ${meta}
+      </div>
+
     </div>
 
   `;
@@ -679,10 +773,11 @@ function startScanner() {
     );
 
     updateStatus(
-      "warning",
-      "⚠️ Cámara no disponible",
-      "Permite acceso a la cámara"
-    );
+  "warning",
+  "CÁMARA NO DISPONIBLE",
+  "Permite acceso a la cámara",
+  "CAMERA ACCESS REQUIRED"
+);
 
   });
 
