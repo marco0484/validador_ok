@@ -1405,23 +1405,305 @@ body.scan-invalid{
 @media(max-width:900px){
 
   body{
-    padding:20px;
+
+    padding:14px;
+
+    overflow-x:hidden;
+
   }
+
+  /* APP */
 
   .app{
+
     grid-template-columns:1fr;
+
+    gap:18px;
+
   }
 
-  h1{
-    font-size:24px;
+  /* CARDS */
+
+  .card{
+
+    padding:18px;
+
+    border-radius:22px;
+
   }
 
-  .scanner-box{
-    padding:24px;
+  /* LOGIN */
+
+  .login-screen{
+
+    padding:20px 0;
+
   }
 
   .login-card{
+
     width:100%;
+
+    max-width:100%;
+
+    padding:34px 22px;
+
+    border-radius:28px;
+
+  }
+
+  /* LOGO */
+
+  .login-logo{
+
+    font-size:48px;
+
+    letter-spacing:6px;
+
+    line-height:.95;
+
+    margin-bottom:14px;
+
+  }
+
+  .cosmic-line{
+
+    width:100px;
+
+    margin-bottom:18px;
+
+  }
+
+  .login-subtitle{
+
+    font-size:11px;
+
+    letter-spacing:1.5px;
+
+    margin-bottom:24px;
+
+  }
+
+  .system-status{
+
+    font-size:9px;
+
+    letter-spacing:2px;
+
+    margin-bottom:24px;
+
+    text-align:center;
+
+    flex-wrap:wrap;
+
+  }
+
+  /* INPUTS */
+
+  .login-box input{
+
+    height:56px;
+
+    font-size:15px;
+
+    padding:14px;
+
+  }
+
+  /* BUTTON */
+
+  #loginBtn{
+
+    height:58px;
+
+    font-size:14px;
+
+    letter-spacing:2px;
+
+  }
+
+  /* FOOTER */
+
+  .login-footer{
+
+    margin-top:24px;
+
+    font-size:10px;
+
+    line-height:1.6;
+
+    text-align:center;
+
+  }
+
+  /* TITLES */
+
+  h1{
+
+    font-size:24px;
+
+  }
+
+  .subtitle{
+
+    font-size:14px;
+
+  }
+
+  /* SCANNER */
+
+  .scanner-box{
+
+    padding:24px 18px;
+
+  }
+
+  .scanner-icon{
+
+    font-size:42px;
+
+  }
+
+  /* CAMERA */
+
+  .reader-wrapper{
+
+    border-radius:22px;
+
+  }
+
+  #reader{
+
+    border-radius:22px;
+
+  }
+
+  #reader video,
+  #reader canvas{
+
+    border-radius:22px;
+
+  }
+
+  /* HUD */
+
+  .sacred-overlay::after{
+
+    width:170px;
+    height:170px;
+
+  }
+
+  /* CORNERS */
+
+  .reader-wrapper .corner{
+
+    width:40px;
+    height:40px;
+
+  }
+
+  /* STATUS */
+
+  .status{
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:14px;
+
+    padding:20px;
+
+    min-height:auto;
+
+  }
+
+  .status-icon{
+
+    width:78px;
+    height:78px;
+    min-width:78px;
+
+    font-size:42px;
+
+  }
+
+  .status-title{
+
+    font-size:28px !important;
+
+  }
+
+  .status-subtitle{
+
+    font-size:18px !important;
+
+  }
+
+  .status-meta{
+
+    font-size:12px !important;
+
+    letter-spacing:2px;
+
+  }
+
+  /* COUNTERS */
+
+  .counter-box p{
+
+    font-size:14px;
+
+  }
+
+  /* LOGS */
+
+  .log-item{
+
+    font-size:12px;
+
+  }
+
+}
+
+/* ========================= */
+/* EXTRA SMALL DEVICES */
+/* ========================= */
+
+@media(max-width:480px){
+
+  .login-logo{
+
+    font-size:40px;
+
+    letter-spacing:4px;
+
+  }
+
+  .login-card{
+
+    padding:28px 18px;
+
+  }
+
+  .status-title{
+
+    font-size:24px !important;
+
+  }
+
+  .status-subtitle{
+
+    font-size:16px !important;
+
+  }
+
+  .sacred-overlay::after{
+
+    width:140px;
+    height:140px;
+
   }
 
 }
