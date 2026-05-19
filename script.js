@@ -36,7 +36,48 @@ const users = [
 
 ];
 
+/* ========================= */
+/* GLOBAL STATE */
+/* ========================= */
+
 let currentUser = null;
+
+/* ========================= */
+/* OFFLINE MODE */
+/* ========================= */
+
+/*
+  Aquí se guardan TODOS los tickets
+  descargados desde Supabase.
+
+  Si se cae internet:
+  seguimos validando localmente.
+*/
+
+let offlineTickets =
+
+  JSON.parse(
+
+    localStorage.getItem(
+      "offlineTickets"
+    ) || "[]"
+
+  );
+
+/*
+  Cola pendiente para sincronizar
+  cuando vuelva internet.
+*/
+
+let pendingSync =
+
+  JSON.parse(
+
+    localStorage.getItem(
+      "pendingSync"
+    ) || "[]"
+
+  );
 
 /* ========================= */
 /* ELEMENTS */
@@ -65,6 +106,10 @@ let okCount = 0;
 let dupCount = 0;
 let invalidCount = 0;
 
+/* ========================= */
+/* ANTISPAM SCAN */
+/* ========================= */
+
 let lastScan = "";
 let lastScanTime = 0;
 
@@ -73,8 +118,11 @@ let lastScanTime = 0;
 /* ========================= */
 
 const alertSound =
+
   new Audio(
+
     "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+
   );
 
 /* ========================= */
@@ -82,38 +130,57 @@ const alertSound =
 /* ========================= */
 
 document
+
   .getElementById(
     "loginBtn"
   )
+
   .addEventListener(
     "click",
     login
   );
 
-function login() {
+/* ========================= */
+/* LOGIN FUNCTION */
+/* ========================= */
+
+async function login() {
 
   const username =
+
     document
+
       .getElementById(
         "username"
       )
+
       .value
       .trim();
 
   const password =
+
     document
+
       .getElementById(
         "password"
       )
+
       .value
       .trim();
 
   const user =
+
     users.find(
+
       u =>
+
         u.username === username &&
+
         u.password === password
+
     );
+
+  /* INVALID LOGIN */
 
   if (!user) {
 
@@ -129,37 +196,300 @@ function login() {
 
   currentUser = user;
 
+  /* SHOW APP */
+
   document
+
     .getElementById(
       "loginScreen"
     )
+
     .style.display = "none";
 
   document
+
     .getElementById(
       "scannerApp"
     )
+
     .style.display = "grid";
 
+  /* STAFF */
+
   document
+
     .getElementById(
       "staffDisplay"
     )
+
     .innerText =
+
       `${user.username} (${user.role})`;
 
   addLog(
     `🔐 Login: ${user.username}`
   );
 
- updateStatus(
-  "success",
-  "SISTEMA ACTIVO",
-  `${user.role} • ${user.gate}`,
-  "AUTHENTICATION SUCCESS"
-);
+  updateStatus(
+
+    "success",
+
+    "SISTEMA ACTIVO",
+
+    `${user.role} • ${user.gate}`,
+
+    "AUTHENTICATION SUCCESS"
+
+  );
+
+  /* ========================= */
+  /* DOWNLOAD OFFLINE DATABASE */
+  /* ========================= */
+
+  await syncOfflineTickets();
+
+  /* ========================= */
+  /* TRY SYNC PENDING */
+  /* ========================= */
+
+  await syncPendingTickets();
+
+  /* ========================= */
+  /* START CAMERA */
+  /* ========================= */
 
   startScanner();
+
+}
+
+/* ========================= */
+/* SYNC OFFLINE TICKETS */
+/* ========================= */
+
+async function syncOfflineTickets(){
+
+  /*
+    Si no hay internet:
+    usar cache local.
+  */
+
+  if(!navigator.onLine){
+
+    addLog(
+      "📦 MODO OFFLINE"
+    );
+
+    updateConnectionStatus();
+
+    return;
+
+  }
+
+  try{
+
+    const {
+
+      data,
+
+      error
+
+    } = await supabaseClient
+
+      .from(
+        "qr_valida_tickets"
+      )
+
+      .select("*");
+
+    if(error){
+
+      console.error(error);
+
+      return;
+
+    }
+
+    offlineTickets = data;
+
+    localStorage.setItem(
+
+      "offlineTickets",
+
+      JSON.stringify(data)
+
+    );
+
+    addLog(
+
+      `☁️ ${data.length} tickets sincronizados`
+
+    );
+
+    updateConnectionStatus();
+
+  }catch(err){
+
+    console.error(err);
+
+  }
+
+}
+
+/* ========================= */
+/* SYNC PENDING */
+/* ========================= */
+
+async function syncPendingTickets(){
+
+  /*
+    Si no hay internet:
+    no sincronizar.
+  */
+
+  if(!navigator.onLine){
+
+    return;
+
+  }
+
+  /*
+    Nada pendiente.
+  */
+
+  if(!pendingSync.length){
+
+    return;
+
+  }
+
+  addLog(
+    "☁️ Sincronizando pendientes..."
+  );
+
+  for(const item of pendingSync){
+
+    try{
+
+      await supabaseClient
+
+        .from(
+          "qr_valida_tickets"
+        )
+
+        .update({
+
+          used: item.used,
+
+          used_at: item.used_at
+
+        })
+
+        .eq(
+          "id",
+          item.id
+        );
+
+    }catch(err){
+
+      console.error(err);
+
+    }
+
+  }
+
+  pendingSync = [];
+
+  localStorage.setItem(
+
+    "pendingSync",
+
+    JSON.stringify([])
+
+  );
+
+  addLog(
+    "✅ Pendientes sincronizados"
+  );
+
+}
+
+/* ========================= */
+/* ONLINE EVENT */
+/* ========================= */
+
+window.addEventListener(
+
+  "online",
+
+  async () => {
+
+    addLog(
+      "🟢 Internet restaurado"
+    );
+
+    updateConnectionStatus();
+
+    await syncOfflineTickets();
+
+    await syncPendingTickets();
+
+  }
+
+);
+
+/* ========================= */
+/* OFFLINE EVENT */
+/* ========================= */
+
+window.addEventListener(
+
+  "offline",
+
+  () => {
+
+    addLog(
+      "🟠 Modo offline activado"
+    );
+
+    updateConnectionStatus();
+
+  }
+
+);
+
+/* ========================= */
+/* CONNECTION STATUS */
+/* ========================= */
+
+function updateConnectionStatus(){
+
+  const modeText =
+
+    navigator.onLine
+
+      ? "🟢 Online + Offline Cache"
+
+      : "🟠 Offline Cache Mode";
+
+  const staffBox =
+
+    document.querySelector(
+      ".staff-box"
+    );
+
+  const lines =
+    staffBox.querySelectorAll("p");
+
+  if(lines[2]){
+
+    lines[2].innerHTML = `
+
+      <strong>Modo:</strong>
+      ${modeText}
+
+    `;
+
+  }
 
 }
 
@@ -169,16 +499,25 @@ function login() {
 
 async function validateTicket() {
 
+  /* ========================= */
+  /* LOGIN CHECK */
+  /* ========================= */
+
   if (!currentUser) {
 
     triggerAlert();
 
     updateStatus(
-  "warning",
-  "ACCESO RESTRINGIDO",
-  "Debes iniciar sesión",
-  "LOGIN REQUIRED"
-);
+
+      "warning",
+
+      "ACCESO RESTRINGIDO",
+
+      "Debes iniciar sesión",
+
+      "LOGIN REQUIRED"
+
+    );
 
     return;
 
@@ -188,10 +527,18 @@ async function validateTicket() {
 
   let ticketId = "";
 
+  /* ========================= */
+  /* QR PARSE */
+  /* ========================= */
+
   try {
 
     let raw =
       ticketInput.value.trim();
+
+    /*
+      QR firmado.
+    */
 
     if (
       raw.startsWith(
@@ -200,11 +547,14 @@ async function validateTicket() {
     ) {
 
       raw =
+
         atob(
+
           raw.replace(
             "CPASS|",
             ""
           )
+
         );
 
     }
@@ -215,16 +565,29 @@ async function validateTicket() {
     ticketId =
       ticketData.id;
 
+    /* ========================= */
+    /* HASH VALIDATION */
+    /* ========================= */
+
     if (
       ticketData.hash
     ) {
 
       const expected =
+
         btoa(
+
           ticketData.id +
+
           ticketData.name +
+
           "cosmic_secret"
+
         );
+
+      /*
+        Ticket alterado.
+      */
 
       if (
         expected !==
@@ -234,13 +597,21 @@ async function validateTicket() {
         triggerAlert();
 
         updateStatus(
+
           "error",
+
           "⚠️ Ticket alterado",
-          "Firma inválida"
+
+          "Firma inválida",
+
+          "TAMPER DETECTED"
+
         );
 
         addLog(
+
           `⚠️ Ticket alterado: ${ticketData.id}`
+
         );
 
         return;
@@ -251,6 +622,10 @@ async function validateTicket() {
 
   } catch {
 
+    /*
+      Manual input.
+    */
+
     ticketId =
       ticketInput.value
         .trim();
@@ -260,12 +635,20 @@ async function validateTicket() {
   ticketId =
     ticketId.trim();
 
+  /* EMPTY */
+
   if (!ticketId) {
 
     updateStatus(
+
       "warning",
+
       "Ingresa un ticket",
-      "Escanea o pega manualmente el ID"
+
+      "Escanea o pega manualmente el ID",
+
+      "EMPTY INPUT"
+
     );
 
     return;
@@ -273,41 +656,75 @@ async function validateTicket() {
   }
 
   /* ========================= */
-  /* QUERY SUPABASE */
+  /* QUERY MODE */
   /* ========================= */
 
-  const {
-    data: ticket,
-    error
-  } = await supabaseClient
+  let ticket = null;
 
-    .from(
-      "qr_valida_tickets"
-    )
+  /*
+    ONLINE
+  */
 
-    .select("*")
+  if(navigator.onLine){
 
-    .eq(
-      "id",
-      ticketId
-    )
+    try{
 
-    .single();
+      const {
 
-  console.log(
-    "TICKET:",
-    ticket
-  );
+        data,
 
-  console.log(
-    "ERROR:",
-    error
-  );
+        error
 
-  console.log(
-    "BUSCANDO:",
-    ticketId
-  );
+      } = await supabaseClient
+
+        .from(
+          "qr_valida_tickets"
+        )
+
+        .select("*")
+
+        .eq(
+          "id",
+          ticketId
+        )
+
+        .single();
+
+      ticket = data;
+
+      console.log(
+        "🟢 ONLINE MODE"
+      );
+
+    }catch(err){
+
+      console.error(err);
+
+    }
+
+  }else{
+
+    /*
+      OFFLINE CACHE
+    */
+
+    ticket =
+
+      offlineTickets.find(
+
+        t => t.id === ticketId
+
+      );
+
+    console.log(
+      "🟠 OFFLINE MODE"
+    );
+
+    addLog(
+      "📦 Validación offline"
+    );
+
+  }
 
   /* ========================= */
   /* INVALID */
@@ -318,20 +735,27 @@ async function validateTicket() {
     invalidCount++;
 
     document
+
       .getElementById(
         "invalidCount"
       )
+
       .innerText =
         invalidCount;
 
     triggerAlert();
 
     updateStatus(
-  "error",
-  "ACCESO DENEGADO",
-  "El ticket no existe",
-  "INVALID TICKET"
-);
+
+      "error",
+
+      "ACCESO DENEGADO",
+
+      "El ticket no existe",
+
+      "INVALID TICKET"
+
+    );
 
     addLog(
       `❌ Ticket inválido: ${ticketId}`
@@ -349,23 +773,27 @@ async function validateTicket() {
 
   if (ticket.used) {
 
-    console.log(
-      "🚨 ENVIANDO ALERTA DISCORD"
-    );
+    /*
+      Discord alert solo online.
+    */
 
-    try {
+    if(navigator.onLine){
 
-      const response =
+      try {
+
         await fetch(
 
-          "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
+          "TU_WEBHOOK",
 
           {
+
             method: "POST",
 
             headers: {
+
               "Content-Type":
                 "application/json"
+
             },
 
             body:
@@ -376,24 +804,11 @@ async function validateTicket() {
 
                 content:
 
-`🚨 ALERTA — COSMIC PASS SECURITY
+`🚨 ALERTA DUPLICADO
 
-🎫 Ticket:
-${ticket.id}
-
-👤 Nombre:
-${ticket.name}
-
-🕒 Hora:
-${new Date().toLocaleTimeString()}
-
-📍 Escáner:
-Entrada Principal
-
-👮 Operador:
-${currentUser.username}
-
-⚠️ Ticket duplicado detectado.`
+🎫 ${ticket.id}
+👤 ${ticket.name}
+👮 ${currentUser.username}`
 
               })
 
@@ -401,48 +816,41 @@ ${currentUser.username}
 
         );
 
-      console.log(
-        "DISCORD STATUS:",
-        response.status
-      );
+      } catch(err) {
 
-      const text =
-        await response.text();
+        console.error(err);
 
-      console.log(
-        "DISCORD RESPONSE:",
-        text
-      );
-
-    } catch(err) {
-
-      console.error(
-        "DISCORD ERROR:",
-        err
-      );
+      }
 
     }
 
     dupCount++;
 
     document
+
       .getElementById(
         "dupCount"
       )
+
       .innerText =
         dupCount;
 
     triggerAlert();
 
     updateStatus(
-  "error",
-  "TICKET DUPLICADO",
-  `${ticket.name}`,
-  `PRIMER ACCESO ${ticket.used_at}`
-);
+
+      "error",
+
+      "TICKET DUPLICADO",
+
+      `${ticket.name}`,
+
+      `PRIMER ACCESO ${ticket.used_at}`
+
+    );
 
     addLog(
-      `🚨 Duplicado detectado: ${ticket.id}`
+      `🚨 Duplicado: ${ticket.id}`
     );
 
     ticketInput.value = "";
@@ -458,59 +866,148 @@ ${currentUser.username}
   ticket.used = true;
 
   ticket.used_at =
+
     new Date()
       .toLocaleTimeString();
 
-  await supabaseClient
+  /* ========================= */
+  /* UPDATE LOCAL CACHE */
+  /* ========================= */
 
-    .from(
-      "qr_valida_tickets"
-    )
+  const localIndex =
 
-    .update({
+    offlineTickets.findIndex(
+
+      t => t.id === ticket.id
+
+    );
+
+  if(localIndex !== -1){
+
+    offlineTickets[localIndex] = ticket;
+
+    localStorage.setItem(
+
+      "offlineTickets",
+
+      JSON.stringify(
+        offlineTickets
+      )
+
+    );
+
+  }
+
+  /* ========================= */
+  /* ONLINE SAVE */
+  /* ========================= */
+
+  if(navigator.onLine){
+
+    try{
+
+      await supabaseClient
+
+        .from(
+          "qr_valida_tickets"
+        )
+
+        .update({
+
+          used: true,
+
+          used_at:
+            ticket.used_at
+
+        })
+
+        .eq(
+          "id",
+          ticket.id
+        );
+
+    }catch(err){
+
+      console.error(err);
+
+    }
+
+  }else{
+
+    /*
+      Guardar pendiente.
+    */
+
+    pendingSync.push({
+
+      id: ticket.id,
 
       used: true,
 
       used_at:
         ticket.used_at
 
-    })
+    });
 
-    .eq(
-      "id",
-      ticket.id
+    localStorage.setItem(
+
+      "pendingSync",
+
+      JSON.stringify(
+        pendingSync
+      )
+
     );
+
+    addLog(
+      "📡 Pendiente de sincronización"
+    );
+
+  }
 
   /* ========================= */
   /* SUCCESS */
   /* ========================= */
 
   const displayName =
+
     ticketData?.name ||
+
     ticket.name;
 
   const displayType =
+
     ticketData?.type ||
+
     ticket.type;
 
   okCount++;
 
   document
+
     .getElementById(
       "okCount"
     )
+
     .innerText =
       okCount;
 
   updateStatus(
-  "success",
-  "ACCESO AUTORIZADO",
-  displayName,
-  displayType
-);
+
+    "success",
+
+    "ACCESO AUTORIZADO",
+
+    displayName,
+
+    displayType
+
+  );
 
   addLog(
+
     `✅ ${currentUser.username} autorizó ${ticket.id} (${displayName})`
+
   );
 
   ticketInput.value = "";
@@ -545,65 +1042,83 @@ function updateStatus(
     icon = "⚠";
   }
 
+  /* RESET FX */
+
   document.body.classList.remove(
-  "scan-success",
-  "scan-duplicate",
-  "scan-invalid"
-);
 
-if (type === "success") {
+    "scan-success",
+    "scan-duplicate",
+    "scan-invalid"
 
-  document.body.classList.add(
-    "scan-success"
   );
 
-  setTimeout(() => {
+  /* SUCCESS */
 
-    document.body.classList.remove(
+  if (type === "success") {
+
+    document.body.classList.add(
       "scan-success"
     );
 
-  }, 600);
+    setTimeout(() => {
 
-}
+      document.body.classList.remove(
+        "scan-success"
+      );
 
-if (
-  type === "error" &&
-  title.includes("DUPLICADO")
-) {
+    }, 600);
 
-  document.body.classList.add(
-    "scan-duplicate"
-  );
+  }
 
-  setTimeout(() => {
+  /* DUPLICATE */
 
-    document.body.classList.remove(
+  if (
+
+    type === "error" &&
+
+    title.includes("DUPLICADO")
+
+  ) {
+
+    document.body.classList.add(
       "scan-duplicate"
     );
 
-  }, 2000);
+    setTimeout(() => {
 
-}
+      document.body.classList.remove(
+        "scan-duplicate"
+      );
 
-if (
-  type === "error" &&
-  title.includes("DENEGADO")
-) {
+    }, 2000);
 
-  document.body.classList.add(
-    "scan-invalid"
-  );
+  }
 
-  setTimeout(() => {
+  /* INVALID */
 
-    document.body.classList.remove(
+  if (
+
+    type === "error" &&
+
+    title.includes("DENEGADO")
+
+  ) {
+
+    document.body.classList.add(
       "scan-invalid"
     );
 
-  }, 1600);
+    setTimeout(() => {
 
-}
+      document.body.classList.remove(
+        "scan-invalid"
+      );
+
+    }, 1600);
+
+  }
+
+  /* RENDER */
 
   statusBox.innerHTML = `
 
@@ -638,20 +1153,22 @@ if (
 function addLog(text) {
 
   const logs =
-    document
-      .getElementById(
-        "logsContainer"
-      );
+
+    document.getElementById(
+      "logsContainer"
+    );
 
   const item =
+
     document.createElement(
       "div"
     );
 
   item.className =
-      "log-item";
+    "log-item";
 
   item.innerText =
+
     `${new Date().toLocaleTimeString()} - ${text}`;
 
   logs.prepend(item);
@@ -698,6 +1215,7 @@ function triggerAlert() {
 function startScanner() {
 
   const scanner =
+
     new Html5Qrcode(
       "reader"
     );
@@ -711,6 +1229,7 @@ function startScanner() {
 
     {
       fps: 10,
+
       qrbox: 250
     },
 
@@ -718,6 +1237,10 @@ function startScanner() {
 
       const now =
         Date.now();
+
+      /*
+        Anti doble lectura.
+      */
 
       if (
 
@@ -773,11 +1296,16 @@ function startScanner() {
     );
 
     updateStatus(
-  "warning",
-  "CÁMARA NO DISPONIBLE",
-  "Permite acceso a la cámara",
-  "CAMERA ACCESS REQUIRED"
-);
+
+      "warning",
+
+      "CÁMARA NO DISPONIBLE",
+
+      "Permite acceso a la cámara",
+
+      "CAMERA ACCESS REQUIRED"
+
+    );
 
   });
 
@@ -788,9 +1316,13 @@ function startScanner() {
 /* ========================= */
 
 validateBtn
+
   .addEventListener(
+
     "click",
+
     validateTicket
+
   );
 
 /* ========================= */
@@ -800,3 +1332,9 @@ validateBtn
 addLog(
   "🟢 Sistema iniciado"
 );
+
+/* ========================= */
+/* INITIAL CONNECTION STATUS */
+/* ========================= */
+
+updateConnectionStatus();
