@@ -783,7 +783,7 @@ async function validateTicket() {
 
         await fetch(
 
-          "TU_WEBHOOK",
+          "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
 
           {
 
