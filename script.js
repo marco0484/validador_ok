@@ -128,7 +128,7 @@ const alertSound =
 /* ========================= */
 /* LOGIN */
 /* ========================= */
-
+/*
 document
 
   .getElementById(
@@ -139,7 +139,7 @@ document
     "click",
     login
   );
-
+*/
 /* ========================= */
 /* LOGIN FUNCTION */
 /* ========================= */
@@ -1338,3 +1338,45 @@ addLog(
 /* ========================= */
 
 updateConnectionStatus();
+/* ========================= */
+/* AUTO LOGIN SCANNER */
+/* ========================= */
+
+window.addEventListener("load", async () => {
+
+  currentUser = {
+    username: "scanner",
+    role: "Scanner",
+    gate: "Entrada Principal"
+  };
+
+  document.getElementById(
+    "loginScreen"
+  ).style.display = "none";
+
+  document.getElementById(
+    "scannerApp"
+  ).style.display = "grid";
+
+  document.getElementById(
+    "staffDisplay"
+  ).innerText =
+    `${currentUser.username} (${currentUser.role})`;
+
+  addLog(
+    "🔓 Auto Login"
+  );
+
+  updateStatus(
+    "success",
+    "SISTEMA ACTIVO",
+    `${currentUser.role} • ${currentUser.gate}`,
+    "AUTO LOGIN"
+  );
+
+  await syncOfflineTickets();
+  await syncPendingTickets();
+
+  startScanner();
+
+});
