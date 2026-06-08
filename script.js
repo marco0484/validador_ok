@@ -1340,7 +1340,7 @@ updateConnectionStatus();
 /* ========================= */
 /* AUTO LOGIN SCANNER */
 /* ========================= */
-
+/*
 window.addEventListener("load", async () => {
 
   currentUser = {
@@ -1379,3 +1379,4 @@ window.addEventListener("load", async () => {
   startScanner();
 
 });
+*/
