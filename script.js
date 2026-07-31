@@ -13,7 +13,7 @@ let currentUser =
 
 if (!currentUser) {
     window.location.href = "https://cosmic-pass.vercel.app/";
-    return;
+    throw new Error("Usuario sin sesión.");
 }
 
 const rolesPermitidos = [
