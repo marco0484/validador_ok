@@ -12,7 +12,7 @@ let currentUser =
     );
 
 if (!currentUser) {
-    window.location.href = "https://cosmic-pass.vercel.app/";
+    window.location.href = "https://cosmicpass.space/";
     throw new Error("Usuario sin sesión.");
 }
 
