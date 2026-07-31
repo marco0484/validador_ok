@@ -12,14 +12,8 @@ let currentUser =
     );
 
 if (!currentUser) {
-
-    window.location.href =
-        "/login.html";
-
-    throw new Error(
-        "Usuario sin sesión."
-    );
-
+    window.location.href = "https://cosmic-pass.vercel.app/";
+    return;
 }
 
 const rolesPermitidos = [
@@ -40,8 +34,9 @@ if (
 
 ){
 
-    window.location.href =
-        "/403.html";
+alert("No tienes permisos para acceder al Scanner.");
+
+window.location.href="https://cosmic-pass.vercel.app/";
 
     throw new Error(
         "Sin permisos."
@@ -115,120 +110,44 @@ const alertSound =
 /* SYNC OFFLINE TICKETS */
 /* ========================= */
 
-async function syncOfflineTickets(){
+async function syncOfflineTickets() {
 
-  /*
-    Si no hay internet:
-    usar cache local.
-  */
+    if (!navigator.onLine) {
 
-  if(!navigator.onLine){
+        addLog("📦 MODO OFFLINE");
+        updateConnectionStatus();
+        return;
 
-    addLog(
-      "📦 MODO OFFLINE"
-    );
+    }
 
-    updateConnectionStatus();
-    window.addEventListener(
-    "load",
-    async () => {
+    try {
 
-        document
-        .getElementById(
-            "loginScreen"
-        )
-        ?.remove();
+        const { data, error } = await supabaseClient
+            .from("qr_valida_tickets")
+            .select("*");
 
-        document
-        .getElementById(
-            "scannerApp"
-        )
-        .style.display =
-        "grid";
+        if (error) {
+            console.error(error);
+            return;
+        }
 
-        document
-        .getElementById(
-            "staffDisplay"
-        )
-        .innerText =
-        `${currentUser.nombre} (${currentUser.rol})`;
+        offlineTickets = data;
 
-        updateStatus(
-
-            "success",
-
-            "SISTEMA ACTIVO",
-
-            currentUser.productora_nombre ||
-
-            "",
-
-            currentUser.rol
-
+        localStorage.setItem(
+            "offlineTickets",
+            JSON.stringify(data)
         );
 
-        await syncOfflineTickets();
+        addLog(`☁️ ${data.length} tickets sincronizados`);
 
-        await syncPendingTickets();
+        updateConnectionStatus();
 
-        startScanner();
+    } catch (err) {
 
-    }
-);
-
-    return;
-
-  }
-
-  try{
-
-    const {
-
-      data,
-
-      error
-
-    } = await supabaseClient
-
-      .from(
-        "qr_valida_tickets"
-      )
-
-      .select("*");
-
-    if(error){
-
-      console.error(error);
-
-      return;
+        console.error(err);
 
     }
-
-    offlineTickets = data;
-
-    localStorage.setItem(
-
-      "offlineTickets",
-
-      JSON.stringify(data)
-
-    );
-
-    addLog(
-
-      `☁️ ${data.length} tickets sincronizados`
-
-    );
-
-    updateConnectionStatus();
-
-  }catch(err){
-
-    console.error(err);
-
   }
-
-}
 
 /* ========================= */
 /* SYNC PENDING */
@@ -351,40 +270,58 @@ window.addEventListener(
   }
 
 );
+window.addEventListener("load", async () => {
 
+    document.getElementById("staffDisplay").innerText =
+        currentUser.nombre;
+
+    document.getElementById("roleDisplay").innerText =
+        currentUser.rol;
+
+    document.getElementById("productoraDisplay").innerText =
+        currentUser.productora_nombre || "-";
+
+    const operador = document.getElementById("operadorPanel");
+    if (operador) {
+        operador.innerText = currentUser.nombre;
+    }
+
+    const productora = document.getElementById("productoraPanel");
+    if (productora) {
+        productora.innerText = currentUser.productora_nombre || "-";
+    }
+
+    updateConnectionStatus();
+
+    addLog(`🔐 ${currentUser.nombre}`);
+
+    await syncOfflineTickets();
+
+    await syncPendingTickets();
+
+    startScanner();
+
+});
 /* ========================= */
 /* CONNECTION STATUS */
 /* ========================= */
 
-function updateConnectionStatus(){
+function updateConnectionStatus() {
 
-  const modeText =
+    const connection = document.getElementById("connectionStatus");
+    const estado = document.getElementById("estadoPanel");
 
-    navigator.onLine
+    const text = navigator.onLine
+        ? "🟢 Online"
+        : "🟠 Offline";
 
-      ? "🟢 Online + Offline Cache"
+    if (connection) {
+        connection.innerText = text;
+    }
 
-      : "🟠 Offline Cache Mode";
-
-  const staffBox =
-
-    document.querySelector(
-      ".staff-box"
-    );
-
-  const lines =
-    staffBox.querySelectorAll("p");
-
-  if(lines[2]){
-
-    lines[2].innerHTML = `
-
-      <strong>Modo:</strong>
-      ${modeText}
-
-    `;
-
-  }
+    if (estado) {
+        estado.innerText = text;
+    }
 
 }
 
@@ -578,11 +515,8 @@ async function validateTicket() {
 
         .select("*")
 
-        .eq(
-          "id",
-          ticketId
-        )
-
+        .eq("id", ticketId)
+        .eq("id_productora", currentUser.id_productora)
         .single();
 
       ticket = data;
@@ -754,37 +688,19 @@ async function validateTicket() {
 
   }
 
-  /* ========================= */
-  /* MARK USED */
-  /* ========================= */
-
   ticket.used = true;
-
   ticket.used_at =
 
-    new Date()
-      .toLocaleTimeString();
+    new Date().toLocaleTimeString();
 
-  /* ========================= */
-  /* UPDATE LOCAL CACHE */
-  /* ========================= */
-
-  const localIndex =
-
-    offlineTickets.findIndex(
-
+  const localIndex = offlineTickets.findIndex(
       t => t.id === ticket.id
-
     );
 
   if(localIndex !== -1){
-
     offlineTickets[localIndex] = ticket;
-
     localStorage.setItem(
-
       "offlineTickets",
-
       JSON.stringify(
         offlineTickets
       )
@@ -801,25 +717,14 @@ async function validateTicket() {
 
     try{
 
-      await supabaseClient
-
-        .from(
-          "qr_valida_tickets"
-        )
-
-        .update({
-
-          used: true,
-
-          used_at:
-            ticket.used_at
-
-        })
-
-        .eq(
-          "id",
-          ticket.id
-        );
+await supabaseClient
+    .from("qr_valida_tickets")
+    .update({
+        used: true,
+        used_at: ticket.used_at
+    })
+    .eq("id", ticket.id)
+    .eq("id_productora", currentUser.id_productora);
 
     }catch(err){
 
@@ -1215,33 +1120,3 @@ addLog(
 );
 
 updateConnectionStatus()
-window.addEventListener("load", async () => {
-
-    document.getElementById("loginScreen")?.remove();
-
-    const scanner = document.getElementById("scannerApp");
-    if (scanner) {
-        scanner.style.display = "grid";
-    }
-
-    const staff = document.getElementById("staffDisplay");
-    if (staff) {
-        staff.innerText =
-            `${currentUser.nombre} (${currentUser.rol})`;
-    }
-
-    addLog(`🔐 ${currentUser.nombre}`);
-
-    updateStatus(
-        "success",
-        "SISTEMA ACTIVO",
-        currentUser.productora_nombre || "",
-        currentUser.rol
-    );
-
-    await syncOfflineTickets();
-    await syncPendingTickets();
-
-    startScanner();
-
-});
