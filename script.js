@@ -1,57 +1,53 @@
-/* ========================= */
-/* SUPABASE */
-/* ========================= */
-
 const SUPABASE_URL = "https://uqrbykxgsarsfyyvmibr.supabase.co";
-
 const SUPABASE_KEY = "sb_publishable_8K6sVOFwsLbVOUGUr6a-5A_ldVlLQxu";
-
 const supabaseClient =
   supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
 
-/* ========================= */
-/* USERS */
-/* ========================= */
+let currentUser =
+    JSON.parse(
+        localStorage.getItem("cosmic_user")
+    );
 
-const users = [
+if (!currentUser) {
 
-  {
-    username: "admin",
-    password: "admin123",
-    role: "Administrador",
-    gate: "Control Total"
-  },
+    window.location.href =
+        "/login.html";
 
-  {
-    username: "marco",
-    password: "cosmic2026",
-    role: "Scanner",
-    gate: "Entrada Principal"
-  }
+    throw new Error(
+        "Usuario sin sesión."
+    );
 
+}
+
+const rolesPermitidos = [
+    "owner",
+    "admin",
+    "scanner"
 ];
 
-/* ========================= */
-/* GLOBAL STATE */
-/* ========================= */
+if (
 
-let currentUser = null;
+    !rolesPermitidos.includes(
 
-/* ========================= */
-/* OFFLINE MODE */
-/* ========================= */
+        String(
+            currentUser.rol
+        ).toLowerCase()
 
-/*
-  Aquí se guardan TODOS los tickets
-  descargados desde Supabase.
+    )
 
-  Si se cae internet:
-  seguimos validando localmente.
-*/
+){
 
+    window.location.href =
+        "/403.html";
+
+    throw new Error(
+        "Sin permisos."
+    );
+
+}
 let offlineTickets =
 
   JSON.parse(
@@ -62,11 +58,6 @@ let offlineTickets =
 
   );
 
-/*
-  Cola pendiente para sincronizar
-  cuando vuelva internet.
-*/
-
 let pendingSync =
 
   JSON.parse(
@@ -76,10 +67,6 @@ let pendingSync =
     ) || "[]"
 
   );
-
-/* ========================= */
-/* ELEMENTS */
-/* ========================= */
 
 const ticketInput =
   document.getElementById(
@@ -123,141 +110,6 @@ const alertSound =
 
   );
 
-/* ========================= */
-/* LOGIN */
-/* ========================= */
-
-document
-
-  .getElementById(
-    "loginBtn"
-  )
-
-  .addEventListener(
-    "click",
-    login
-  );
-/* ========================= */
-/* LOGIN FUNCTION */
-/* ========================= */
-
-async function login() {
-
-  const username =
-
-    document
-
-      .getElementById(
-        "username"
-      )
-
-      .value
-      .trim();
-
-  const password =
-
-    document
-
-      .getElementById(
-        "password"
-      )
-
-      .value
-      .trim();
-
-  const user =
-
-    users.find(
-
-      u =>
-
-        u.username === username &&
-
-        u.password === password
-
-    );
-
-  /* INVALID LOGIN */
-
-  if (!user) {
-
-    triggerAlert();
-
-    alert(
-      "Usuario o contraseña incorrectos"
-    );
-
-    return;
-
-  }
-
-  currentUser = user;
-
-  /* SHOW APP */
-
-  document
-
-    .getElementById(
-      "loginScreen"
-    )
-
-    .style.display = "none";
-
-  document
-
-    .getElementById(
-      "scannerApp"
-    )
-
-    .style.display = "grid";
-
-  /* STAFF */
-
-  document
-
-    .getElementById(
-      "staffDisplay"
-    )
-
-    .innerText =
-
-      `${user.username} (${user.role})`;
-
-  addLog(
-    `🔐 Login: ${user.username}`
-  );
-
-  updateStatus(
-
-    "success",
-
-    "SISTEMA ACTIVO",
-
-    `${user.role} • ${user.gate}`,
-
-    "AUTHENTICATION SUCCESS"
-
-  );
-
-  /* ========================= */
-  /* DOWNLOAD OFFLINE DATABASE */
-  /* ========================= */
-
-  await syncOfflineTickets();
-
-  /* ========================= */
-  /* TRY SYNC PENDING */
-  /* ========================= */
-
-  await syncPendingTickets();
-
-  /* ========================= */
-  /* START CAMERA */
-  /* ========================= */
-
-  startScanner();
-
-}
 
 /* ========================= */
 /* SYNC OFFLINE TICKETS */
@@ -277,6 +129,52 @@ async function syncOfflineTickets(){
     );
 
     updateConnectionStatus();
+    window.addEventListener(
+    "load",
+    async () => {
+
+        document
+        .getElementById(
+            "loginScreen"
+        )
+        ?.remove();
+
+        document
+        .getElementById(
+            "scannerApp"
+        )
+        .style.display =
+        "grid";
+
+        document
+        .getElementById(
+            "staffDisplay"
+        )
+        .innerText =
+        `${currentUser.nombre} (${currentUser.rol})`;
+
+        updateStatus(
+
+            "success",
+
+            "SISTEMA ACTIVO",
+
+            currentUser.productora_nombre ||
+
+            "",
+
+            currentUser.rol
+
+        );
+
+        await syncOfflineTickets();
+
+        await syncPendingTickets();
+
+        startScanner();
+
+    }
+);
 
     return;
 
@@ -805,7 +703,7 @@ async function validateTicket() {
 
 🎫 ${ticket.id}
 👤 ${ticket.name}
-👮 ${currentUser.username}`
+👮 ${currentUser.nombre}`
 
               })
 
@@ -1001,11 +899,7 @@ async function validateTicket() {
 
   );
 
-  addLog(
-
-    `✅ ${currentUser.username} autorizó ${ticket.id} (${displayName})`
-
-  );
+  addLog(`✅ ${currentUser.nombre} autorizó ${ticket.id} (${displayName})`);
 
   ticketInput.value = "";
 
@@ -1303,14 +1197,8 @@ function startScanner() {
       "CAMERA ACCESS REQUIRED"
 
     );
-
   });
-
 }
-
-/* ========================= */
-/* BUTTON */
-/* ========================= */
 
 validateBtn
 
@@ -1322,59 +1210,38 @@ validateBtn
 
   );
 
-/* ========================= */
-/* INIT */
-/* ========================= */
-
 addLog(
   "🟢 Sistema iniciado"
 );
 
-/* ========================= */
-/* INITIAL CONNECTION STATUS */
-/* ========================= */
-
-updateConnectionStatus();
-/* ========================= */
-/* AUTO LOGIN SCANNER */
-/* ========================= */
-/*
+updateConnectionStatus()
 window.addEventListener("load", async () => {
 
-  currentUser = {
-    username: "scanner",
-    role: "Scanner",
-    gate: "Entrada Principal"
-  };
+    document.getElementById("loginScreen")?.remove();
 
-  document.getElementById(
-    "loginScreen"
-  ).style.display = "none";
+    const scanner = document.getElementById("scannerApp");
+    if (scanner) {
+        scanner.style.display = "grid";
+    }
 
-  document.getElementById(
-    "scannerApp"
-  ).style.display = "grid";
+    const staff = document.getElementById("staffDisplay");
+    if (staff) {
+        staff.innerText =
+            `${currentUser.nombre} (${currentUser.rol})`;
+    }
 
-  document.getElementById(
-    "staffDisplay"
-  ).innerText =
-    `${currentUser.username} (${currentUser.role})`;
+    addLog(`🔐 ${currentUser.nombre}`);
 
-  addLog(
-    "🔓 Auto Login"
-  );
+    updateStatus(
+        "success",
+        "SISTEMA ACTIVO",
+        currentUser.productora_nombre || "",
+        currentUser.rol
+    );
 
-  updateStatus(
-    "success",
-    "SISTEMA ACTIVO",
-    `${currentUser.role} • ${currentUser.gate}`,
-    "AUTO LOGIN"
-  );
+    await syncOfflineTickets();
+    await syncPendingTickets();
 
-  await syncOfflineTickets();
-  await syncPendingTickets();
-
-  startScanner();
+    startScanner();
 
 });
-*/
