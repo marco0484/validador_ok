@@ -300,32 +300,11 @@ window.addEventListener("load", async () => {
 
     const ok = await validarSesion();
 
-    if (!ok) return;
+    if (!ok) return
 
-    const rolesPermitidos = [
-        "owner",
-        "admin",
-        "scanner"
-    ];
-
-    if (
-        !rolesPermitidos.includes(
-            String(currentUser.rol).toLowerCase()
-        )
-    ) {
-        alert("No tienes permisos.");
-        location.href = "https://www.cosmicpass.space";
-        return;
-    }
-
-    document.getElementById("staffDisplay").innerText =
-        currentUser.nombre;
-
-    document.getElementById("roleDisplay").innerText =
-        currentUser.rol;
-
-    document.getElementById("productoraDisplay").innerText =
-        currentUser.productora_nombre || "-";
+    document.getElementById("staffDisplay").innerText = currentUser.nombre;
+    document.getElementById("roleDisplay").innerText = currentUser.rol;
+    document.getElementById("productoraDisplay").innerText = currentUser.productora_nombre || "-";
 
     const operador = document.getElementById("operadorPanel");
     if (operador) {
@@ -339,19 +318,12 @@ window.addEventListener("load", async () => {
     }
 
     updateConnectionStatus();
-
     addLog(`🔐 ${currentUser.nombre}`);
-
     await syncOfflineTickets();
-
     await syncPendingTickets();
-
     startScanner();
 
-}); // ← IMPORTANTE: debe ser `});`
-/* ========================= */
-/* CONNECTION STATUS */
-/* ========================= */
+});
 
 function updateConnectionStatus() {
 
