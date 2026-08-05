@@ -92,9 +92,11 @@ async function syncOfflineTickets() {
 
     try {
 
-        const { data, error } = await supabaseClient
-            .from("qr_valida_tickets")
-            .select("*");
+     const { data, error } = await supabaseClient
+                              .from("qr_valida_tickets")
+                              .select("*")
+                              .eq("id_evento", currentUser.id_evento)
+                              .eq("id_productora", currentUser.id_productora);
 
         if (error) {
             console.error(error);
@@ -243,6 +245,18 @@ window.addEventListener(
 
 async function validarSesion() {
 
+    const usuarioGuardado = localStorage.getItem("scanner_user");
+    if (usuarioGuardado) {
+
+        currentUser = JSON.parse(usuarioGuardado);
+
+        console.log("✅ Sesión recuperada");
+
+        return true;
+
+    }
+
+
     const token =
         new URLSearchParams(location.search)
             .get("token");
@@ -279,19 +293,14 @@ async function validarSesion() {
 
         }
 
-        currentUser =
-            data.user;
-
+        currentUser = data.user;
+        localStorage.setItem( "scanner_user",JSON.stringify(data.user));
         return true;
 
     } catch (err) {
-
         console.error(err);
-
         alert("No fue posible validar la sesión.");
-
         return false;
-
     }
 
 }
@@ -334,40 +343,21 @@ function updateConnectionStatus() {
         ? "🟢 Online"
         : "🟠 Offline";
 
-    if (connection) {
-        connection.innerText = text;
-    }
-
-    if (estado) {
-        estado.innerText = text;
-    }
-
+    if (connection) { connection.innerText = text; }
+    if (estado) { estado.innerText = text; }
 }
 
-/* ========================= */
-/* VALIDATE */
-/* ========================= */
-
 async function validateTicket() {
-
-  /* ========================= */
-  /* LOGIN CHECK */
-  /* ========================= */
 
   if (!currentUser) {
 
     triggerAlert();
 
     updateStatus(
-
       "warning",
-
       "ACCESO RESTRINGIDO",
-
       "Debes iniciar sesión",
-
       "LOGIN REQUIRED"
-
     );
 
     return;
@@ -375,21 +365,11 @@ async function validateTicket() {
   }
 
   let ticketData = null;
-
   let ticketId = "";
-
-  /* ========================= */
-  /* QR PARSE */
-  /* ========================= */
 
   try {
 
-    let raw =
-      ticketInput.value.trim();
-
-    /*
-      QR firmado.
-    */
+    let raw = ticketInput.value.trim();
 
     if (
       raw.startsWith(
@@ -427,18 +407,10 @@ async function validateTicket() {
       const expected =
 
         btoa(
-
           ticketData.id +
-
           ticketData.name +
-
           "cosmic_secret"
-
         );
-
-      /*
-        Ticket alterado.
-      */
 
       if (
         expected !==
@@ -446,97 +418,51 @@ async function validateTicket() {
       ) {
 
         triggerAlert();
-
         updateStatus(
-
           "error",
-
           "⚠️ Ticket alterado",
-
           "Firma inválida",
-
           "TAMPER DETECTED"
-
         );
 
-        addLog(
-
-          `⚠️ Ticket alterado: ${ticketData.id}`
-
-        );
-
+        addLog(`⚠️ Ticket alterado: ${ticketData.id}`);
         return;
 
       }
 
     }
-
   } catch {
 
-    /*
-      Manual input.
-    */
 
-    ticketId =
-      ticketInput.value
-        .trim();
 
+    ticketId = ticketInput.value.trim();
   }
 
-  ticketId =
-    ticketId.trim();
-
-  /* EMPTY */
+  ticketId =  ticketId.trim();
 
   if (!ticketId) {
 
     updateStatus(
-
       "warning",
-
       "Ingresa un ticket",
-
       "Escanea o pega manualmente el ID",
-
       "EMPTY INPUT"
-
     );
-
     return;
-
   }
 
-  /* ========================= */
-  /* QUERY MODE */
-  /* ========================= */
-
   let ticket = null;
-
-  /*
-    ONLINE
-  */
-
   if(navigator.onLine){
 
     try{
 
-      const {
-
-        data,
-
-        error
-
-      } = await supabaseClient
-
-        .from(
-          "qr_valida_tickets"
-        )
-
-        .select("*")
-
-        .eq("id", ticketId)
-        .eq("id_productora", currentUser.id_productora)
-        .single();
+      const { data } = await supabaseClient
+    .from("qr_valida_tickets")
+    .select("*")
+    .eq("id", ticketId)
+    .eq("id_evento", currentUser.id_evento)
+    .eq("id_productora", currentUser.id_productora)
+    .single();
 
       ticket = data;
 
@@ -552,31 +478,16 @@ async function validateTicket() {
 
   }else{
 
-    /*
-      OFFLINE CACHE
-    */
+ticket = offlineTickets.find(
+    t =>
+        t.id === ticketId &&
+        t.id_evento === currentUser.id_evento &&
+        t.id_productora === currentUser.id_productora
+);
 
-    ticket =
-
-      offlineTickets.find(
-
-        t => t.id === ticketId
-
-      );
-
-    console.log(
-      "🟠 OFFLINE MODE"
-    );
-
-    addLog(
-      "📦 Validación offline"
-    );
+    addLog("📦 Validación offline");
 
   }
-
-  /* ========================= */
-  /* INVALID */
-  /* ========================= */
 
   if (!ticket) {
 
@@ -594,20 +505,13 @@ async function validateTicket() {
     triggerAlert();
 
     updateStatus(
-
       "error",
-
       "ACCESO DENEGADO",
-
       "El ticket no existe",
-
       "INVALID TICKET"
-
     );
 
-    addLog(
-      `❌ Ticket inválido: ${ticketId}`
-    );
+    addLog(`❌ Ticket inválido: ${ticketId}`);
 
     ticketInput.value = "";
 
@@ -615,41 +519,24 @@ async function validateTicket() {
 
   }
 
-  /* ========================= */
-  /* DUPLICATE */
-  /* ========================= */
+
 
   if (ticket.used) {
 
-    /*
-      Discord alert solo online.
-    */
-
     if(navigator.onLine){
-
       try {
-
-        await fetch(
-
-          "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
-
+        await fetch( "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
           {
-
             method: "POST",
-
             headers: {
-
               "Content-Type":
                 "application/json"
-
             },
 
             body:
               JSON.stringify({
-
                 username:
                   "COSMIC SECURITY",
-
                 content:
 
 `🚨 ALERTA DUPLICADO
@@ -684,17 +571,11 @@ async function validateTicket() {
         dupCount;
 
     triggerAlert();
-
     updateStatus(
-
       "error",
-
       "TICKET DUPLICADO",
-
       `${ticket.name}`,
-
       `PRIMER ACCESO ${ticket.used_at}`
-
     );
 
     addLog(
@@ -708,9 +589,7 @@ async function validateTicket() {
   }
 
   ticket.used = true;
-  ticket.used_at =
-
-    new Date().toLocaleTimeString();
+  ticket.used_at = new Date().toLocaleTimeString();
 
   const localIndex = offlineTickets.findIndex(
       t => t.id === ticket.id
@@ -728,9 +607,7 @@ async function validateTicket() {
 
   }
 
-  /* ========================= */
-  /* ONLINE SAVE */
-  /* ========================= */
+
 
   if(navigator.onLine){
 
@@ -753,19 +630,11 @@ await supabaseClient
 
   }else{
 
-    /*
-      Guardar pendiente.
-    */
-
     pendingSync.push({
-
       id: ticket.id,
-
       used: true,
-
       used_at:
-        ticket.used_at
-
+      ticket.used_at
     });
 
     localStorage.setItem(
@@ -784,24 +653,11 @@ await supabaseClient
 
   }
 
-  /* ========================= */
-  /* SUCCESS */
-  /* ========================= */
 
-  const displayName =
 
-    ticketData?.name ||
-
-    ticket.name;
-
-  const displayType =
-
-    ticketData?.type ||
-
-    ticket.type;
-
+  const displayName = ticketData?.name ||  ticket.name;
+  const displayType = ticketData?.type || ticket.type;
   okCount++;
-
   document
 
     .getElementById(
@@ -812,15 +668,10 @@ await supabaseClient
       okCount;
 
   updateStatus(
-
     "success",
-
     "ACCESO AUTORIZADO",
-
     displayName,
-
     displayType
-
   );
 
   addLog(`✅ ${currentUser.nombre} autorizó ${ticket.id} (${displayName})`);
@@ -829,9 +680,6 @@ await supabaseClient
 
 }
 
-/* ========================= */
-/* STATUS */
-/* ========================= */
 
 function updateStatus(
   type,
