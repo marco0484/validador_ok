@@ -6,33 +6,13 @@ const supabaseClient =
     SUPABASE_KEY
   ); 
 
-const rolesPermitidos = [
-    "owner",
-    "admin",
-    "scanner"
-];
+  const API =
+  location.hostname === "localhost" ||
+  location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://www.cosmicpass.space";
 
-if (
-
-    !rolesPermitidos.includes(
-
-        String(
-            currentUser.rol
-        ).toLowerCase()
-
-    )
-
-){
-
-alert("No tienes permisos para acceder al Scanner.");
-
-window.location.href="https://cosmic-pass.vercel.app/";
-
-    throw new Error(
-        "Sin permisos."
-    );
-
-}
+let currentUser = null;
 let offlineTickets =
 
   JSON.parse(
@@ -260,7 +240,83 @@ window.addEventListener(
   }
 
 );
+
+async function validarSesion() {
+
+    const token =
+        new URLSearchParams(location.search)
+            .get("token");
+
+    if (!token) {
+
+        alert("Acceso no autorizado");
+
+        location.href =
+            "https://www.cosmicpass.space";
+
+        return false;
+
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/scanner/validate?token=${token}`
+            );
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+
+            alert("Sesión inválida");
+
+            location.href =
+                "https://www.cosmicpass.space";
+
+            return false;
+
+        }
+
+        currentUser =
+            data.user;
+
+        return true;
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert("No fue posible validar la sesión.");
+
+        return false;
+
+    }
+
+}
+
 window.addEventListener("load", async () => {
+
+    const ok = await validarSesion();
+
+    if (!ok) return;
+
+    const rolesPermitidos = [
+        "owner",
+        "admin",
+        "scanner"
+    ];
+
+    if (
+        !rolesPermitidos.includes(
+            String(currentUser.rol).toLowerCase()
+        )
+    ) {
+        alert("No tienes permisos.");
+        location.href = "https://www.cosmicpass.space";
+        return;
+    }
 
     document.getElementById("staffDisplay").innerText =
         currentUser.nombre;
@@ -278,7 +334,8 @@ window.addEventListener("load", async () => {
 
     const productora = document.getElementById("productoraPanel");
     if (productora) {
-        productora.innerText = currentUser.productora_nombre || "-";
+        productora.innerText =
+            currentUser.productora_nombre || "-";
     }
 
     updateConnectionStatus();
@@ -291,7 +348,7 @@ window.addEventListener("load", async () => {
 
     startScanner();
 
-});
+}); // ← IMPORTANTE: debe ser `});`
 /* ========================= */
 /* CONNECTION STATUS */
 /* ========================= */
