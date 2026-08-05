@@ -4,17 +4,7 @@ const supabaseClient =
   supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
-  );
-
-let currentUser =
-    JSON.parse(
-        localStorage.getItem("cosmic_user")
-    );
-
-if (!currentUser) {
-    window.location.href = "https://cosmicpass.space/";
-    throw new Error("Usuario sin sesión.");
-}
+  ); 
 
 const rolesPermitidos = [
     "owner",
