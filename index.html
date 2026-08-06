@@ -3,86 +3,246 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="theme-color"
+        content="#0b1020">
+
+    <meta
+        name="description"
+        content="Sistema de validación de accesos Cosmic Pass">
+
+    <meta
+        http-equiv="Cache-Control"
+        content="no-cache, no-store, must-revalidate">
+
+    <meta
+        http-equiv="Pragma"
+        content="no-cache">
+
+    <meta
+        http-equiv="Expires"
+        content="0">
 
     <title>Cosmic Pass | Scanner QR</title>
 
-    <link rel="stylesheet" href="styles.css">
+    <link
+        rel="stylesheet"
+        href="styles.css">
 
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        .stats-container {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -35px;
+            bottom: -45px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .stat-icon {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            display: block;
+            color: #dce4f5;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .scanner-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .scanner-badge {
+            padding: 6px 11px;
+            color: #67e8f9;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(34, 211, 238, 0.25);
+            border-radius: 999px;
+        }
+
+        .manual-validation {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            margin-top: 14px;
+        }
+
+        .manual-validation input {
+            margin: 0;
+        }
+
+        .manual-validation .primary {
+            width: auto;
+            min-width: 190px;
+            white-space: nowrap;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .panel-heading-icon {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(109, 93, 252, 0.24),
+                rgba(59, 130, 246, 0.18)
+            );
+            border: 1px solid rgba(109, 93, 252, 0.3);
+            border-radius: 11px;
+        }
+
+        .ticket-preview {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        #ticketNombre {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        #ticketTipo {
+            color: #67e8f9;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        #ticketCodigo,
+        #ticketHora {
+            color: var(--muted);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .status-content {
+            min-width: 0;
+        }
+
+        @media (max-width: 1250px) {
+            .stats-container {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 800px) {
+            .stats-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .manual-validation {
+                grid-template-columns: 1fr;
+            }
+
+            .manual-validation .primary {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+
+            .scanner-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <script
+        defer
+        src="https://unpkg.com/html5-qrcode">
+    </script>
+
+    <script
+        defer
+        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js">
+    </script>
+
+    <script
+        defer
+        src="script.js?v=20260806-2">
+    </script>
 </head>
 
 <body>
 
-    <!-- ========================================= -->
     <!-- HEADER -->
-    <!-- ========================================= -->
-
     <header class="cp-header">
 
         <div class="cp-brand">
-
             <h1>Cosmic Pass</h1>
-
-            <span>Scanner QR</span>
-
+            <span>Scanner QR · Control de acceso</span>
         </div>
 
         <div class="cp-session">
 
             <div class="cp-user">
-
-                <span class="label">
-                    Operador
-                </span>
-
-                <span id="staffDisplay">
-                    Cargando...
-                </span>
-
+                <span class="label">Operador</span>
+                <span id="staffDisplay">Cargando...</span>
             </div>
 
             <div class="cp-user">
-
-                <span class="label">
-                    Rol
-                </span>
-
-                <span id="roleDisplay">
-                    -
-                </span>
-
+                <span class="label">Rol</span>
+                <span id="roleDisplay">-</span>
             </div>
 
             <div class="cp-user">
-
-                <span class="label">
-                    Productora
-                </span>
-
-                <span id="productoraDisplay">
-                    -
-                </span>
-
+                <span class="label">Productora</span>
+                <span id="productoraDisplay">-</span>
             </div>
 
             <div class="cp-user">
-
-                <span class="label">
-                    Estado
-                </span>
-
-                <span id="connectionStatus">
-                    🟢 Online
-                </span>
-
+                <span class="label">Estado</span>
+                <span id="connectionStatus">🟢 Online</span>
             </div>
 
-            <button id="logoutBtn" class="logout-btn">
+            <button
+                id="logoutBtn"
+                class="logout-btn"
+                type="button">
 
                 Cerrar sesión
 
@@ -92,99 +252,118 @@
 
     </header>
 
-    <!-- ========================================= -->
     <!-- DASHBOARD -->
-    <!-- ========================================= -->
-
     <main class="dashboard">
 
-        <!-- ========================================= -->
         <!-- ESTADÍSTICAS -->
-        <!-- ========================================= -->
+        <section
+            class="stats-container"
+            aria-label="Estadísticas de tickets">
 
-        <section class="stats-container">
-           <section class="stats-container">
+            <article class="stat-card">
 
-    <div class="stat-card success">
-        <h2 id="availableCount">0</h2>
-        <span>Disponibles</span>
-    </div>
+                <span
+                    class="stat-icon"
+                    aria-hidden="true">
+                    🎟️
+                </span>
 
-    <div class="stat-card">
-        <h2 id="okCount">0</h2>
-        <span>Ingresos</span>
-    </div>
+                <h2 id="totalCount">0</h2>
 
-    <div class="stat-card warning">
-        <h2 id="dupCount">0</h2>
-        <span>Duplicados</span>
-    </div>
+                <span class="stat-label">
+                    Total de tickets
+                </span>
 
-    <div class="stat-card danger">
-        <h2 id="invalidCount">0</h2>
-        <span>Inválidos</span>
-    </div>
+            </article>
 
-</section>
+            <article class="stat-card success">
 
-            <div class="stat-card warning">
-                <h2 id="dupCount">
-                    0
-                </h2>
-                <span>
+                <span
+                    class="stat-icon"
+                    aria-hidden="true">
+                    ✅
+                </span>
+
+                <h2 id="availableCount">0</h2>
+
+                <span class="stat-label">
+                    Disponibles
+                </span>
+
+            </article>
+
+            <article class="stat-card">
+
+                <span
+                    class="stat-icon"
+                    aria-hidden="true">
+                    🚪
+                </span>
+
+                <h2 id="okCount">0</h2>
+
+                <span class="stat-label">
+                    Ingresos
+                </span>
+
+            </article>
+
+            <article class="stat-card warning">
+
+                <span
+                    class="stat-icon"
+                    aria-hidden="true">
+                    ⚠️
+                </span>
+
+                <h2 id="dupCount">0</h2>
+
+                <span class="stat-label">
                     Duplicados
                 </span>
 
-            </div>
+            </article>
 
-            <div class="stat-card danger">
+            <article class="stat-card danger">
 
-                <h2 id="invalidCount">
-                    0
-                </h2>
+                <span
+                    class="stat-icon"
+                    aria-hidden="true">
+                    ❌
+                </span>
 
-                <span>
+                <h2 id="invalidCount">0</h2>
+
+                <span class="stat-label">
                     Inválidos
                 </span>
 
-            </div>
-
-            <div class="stat-card">
-
-                <h2 id="syncCount">
-                    0
-                </h2>
-
-                <span>
-                    Sincronizados
-                </span>
-
-            </div>
+            </article>
 
         </section>
 
-        <!-- ========================================= -->
-        <!-- CONTENIDO -->
-        <!-- ========================================= -->
-
+        <!-- CONTENIDO PRINCIPAL -->
         <section class="content-grid">
 
-            <!-- ====================== -->
-            <!-- SCANNER -->
-            <!-- ====================== -->
-
+            <!-- ESCÁNER -->
             <section class="card scanner-panel">
 
-                <h2>
-                    Escáner QR
-                </h2>
+                <div class="scanner-heading">
 
-                <p class="subtitle">
+                    <div>
+                        <h2>Escáner QR</h2>
 
-                    Escanea el código QR del boleto
-                    o captura el folio manualmente.
+                        <p class="subtitle">
+                            Escanea el código QR del boleto
+                            o captura el folio manualmente.
+                        </p>
+                    </div>
 
-                </p>
+                    <span class="scanner-badge">
+                        Sistema activo
+                    </span>
+
+                </div>
 
                 <div class="reader-wrapper">
 
@@ -197,24 +376,36 @@
 
                 </div>
 
-                <input
-                    id="ticketInput"
-                    type="text"
-                    placeholder="Escanea o captura el folio">
+                <div class="manual-validation">
 
-                <button
-                    id="validateBtn"
-                    class="primary">
+                    <input
+                        id="ticketInput"
+                        type="text"
+                        placeholder="Escanea o captura el folio"
+                        autocomplete="off"
+                        spellcheck="false"
+                        aria-label="Folio del ticket">
 
-                    VALIDAR ACCESO
+                    <button
+                        id="validateBtn"
+                        class="primary"
+                        type="button">
 
-                </button>
+                        VALIDAR ACCESO
+
+                    </button>
+
+                </div>
 
                 <section
                     id="statusBox"
-                    class="status warning">
+                    class="status warning"
+                    aria-live="polite"
+                    aria-atomic="true">
 
-                    <div class="status-icon">
+                    <div
+                        class="status-icon"
+                        aria-hidden="true">
 
                         ◎
 
@@ -223,43 +414,47 @@
                     <div class="status-content">
 
                         <div class="status-title">
-
-                            Esperando Ticket
-
+                            Esperando ticket
                         </div>
 
                         <div class="status-subtitle">
-
                             Sistema listo para validar.
-
                         </div>
 
                         <div class="status-meta">
-
                             COSMIC PASS SECURITY
-
                         </div>
 
                     </div>
 
                 </section>
 
-            </section>         
-               <!-- ====================== -->
-            <!-- PANEL DE CONTROL -->
-            <!-- ====================== -->
+            </section>
 
+            <!-- CENTRO DE VALIDACIÓN -->
             <aside class="card control-panel">
 
-                <h2>
-                    Centro de Validación
-                </h2>
+                <div class="panel-heading">
 
-                <div class="info-card">
+                    <div
+                        class="panel-heading-icon"
+                        aria-hidden="true">
+                        🛡️
+                    </div>
 
-                    <h3>
-                        Información del Evento
-                    </h3>
+                    <div>
+                        <h2>Centro de Validación</h2>
+                        <span class="label">
+                            Control de acceso en tiempo real
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- INFORMACIÓN DEL EVENTO -->
+                <section class="info-card">
+
+                    <h3>Información del Evento</h3>
 
                     <div class="info-row">
 
@@ -304,72 +499,56 @@
                         </span>
 
                         <span id="estadoPanel">
-
-                            🟢 Sistema Activo
-
+                            🟢 Sistema activo
                         </span>
 
                     </div>
 
-                </div>
+                </section>
 
-                <div class="info-card">
+                <!-- ÚLTIMO TICKET -->
+                <section class="info-card">
 
-                    <h3>
-
-                        Último Ticket
-
-                    </h3>
+                    <h3>Último Ticket</h3>
 
                     <div class="ticket-preview">
 
                         <div id="ticketNombre">
-
                             Esperando validación...
-
                         </div>
 
                         <div id="ticketTipo">
-
                             -
-
                         </div>
 
                         <div id="ticketCodigo">
-
-                            -
-
+                            Folio: -
                         </div>
 
                         <div id="ticketHora">
-
-                            --
-
+                            Hora: --
                         </div>
 
                     </div>
 
-                </div>
+                </section>
 
-                <div class="info-card">
+                <!-- ACTIVIDAD -->
+                <section class="info-card">
 
-                    <h3>
+                    <h3>Actividad reciente</h3>
 
-                        Actividad
-
-                    </h3>
-
-                    <div id="logsContainer">
+                    <div
+                        id="logsContainer"
+                        aria-live="polite">
 
                         <div class="log-item">
-
                             Sistema iniciado correctamente.
-
                         </div>
 
                     </div>
 
-                </div>
+                </section>
 
             </aside>
 
@@ -377,33 +556,23 @@
 
     </main>
 
-    <!-- ========================================= -->
     <!-- FOOTER -->
-    <!-- ========================================= -->
-
     <footer class="cp-footer">
 
         <div>
-
             Cosmic Pass © 2026
-
         </div>
 
         <div>
-
             Scanner QR Enterprise
-
         </div>
 
         <div id="lastSync">
-
-            Última sincronización:
-            --
-
+            Última sincronización: --
         </div>
 
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script src="script.js"></script>
+
 </body>
+
 </html>
