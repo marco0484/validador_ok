@@ -48,37 +48,16 @@ const statusBox =
     "statusBox"
   );
 
-/* ========================= */
-/* COUNTERS */
-/* ========================= */
 
 let okCount = 0;
 let dupCount = 0;
 let invalidCount = 0;
-
-/* ========================= */
-/* ANTISPAM SCAN */
-/* ========================= */
-
 let lastScan = "";
 let lastScanTime = 0;
 
-/* ========================= */
-/* ALERT SOUND */
-/* ========================= */
-
 const alertSound =
 
-  new Audio(
-
-    "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
-
-  );
-
-
-/* ========================= */
-/* SYNC OFFLINE TICKETS */
-/* ========================= */
+  new Audio( "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
 
 async function syncOfflineTickets() {
 
@@ -121,26 +100,12 @@ async function syncOfflineTickets() {
     }
   }
 
-/* ========================= */
-/* SYNC PENDING */
-/* ========================= */
-
 async function syncPendingTickets(){
 
-  /*
-    Si no hay internet:
-    no sincronizar.
-  */
 
   if(!navigator.onLine){
-
     return;
-
   }
-
-  /*
-    Nada pendiente.
-  */
 
   if(!pendingSync.length){
 
@@ -163,11 +128,8 @@ async function syncPendingTickets(){
         )
 
         .update({
-
           used: item.used,
-
           used_at: item.used_at
-
         })
 
         .eq(
@@ -185,13 +147,7 @@ async function syncPendingTickets(){
 
   pendingSync = [];
 
-  localStorage.setItem(
-
-    "pendingSync",
-
-    JSON.stringify([])
-
-  );
+  localStorage.setItem("pendingSync",JSON.stringify([]));
 
   addLog(
     "✅ Pendientes sincronizados"
@@ -199,12 +155,8 @@ async function syncPendingTickets(){
 
 }
 
-/* ========================= */
-/* ONLINE EVENT */
-/* ========================= */
 
 window.addEventListener(
-
   "online",
 
   async () => {
@@ -212,30 +164,17 @@ window.addEventListener(
     addLog(
       "🟢 Internet restaurado"
     );
-
     updateConnectionStatus();
-
     await syncOfflineTickets();
-
     await syncPendingTickets();
-
   }
-
 );
 
-/* ========================= */
-/* OFFLINE EVENT */
-/* ========================= */
-
 window.addEventListener(
-
   "offline",
-
   () => {
 
-    addLog(
-      "🟠 Modo offline activado"
-    );
+    addLog("🟠 Modo offline activado");
 
     updateConnectionStatus();
 
@@ -335,10 +274,8 @@ window.addEventListener("load", async () => {
 });
 
 function updateConnectionStatus() {
-
     const connection = document.getElementById("connectionStatus");
     const estado = document.getElementById("estadoPanel");
-
     const text = navigator.onLine
         ? "🟢 Online"
         : "🟠 Offline";
@@ -385,21 +322,11 @@ async function validateTicket() {
             "CPASS|",
             ""
           )
-
         );
-
     }
 
-    ticketData =
-      JSON.parse(raw);
-
-    ticketId =
-      ticketData.id;
-
-    /* ========================= */
-    /* HASH VALIDATION */
-    /* ========================= */
-
+    ticketData = JSON.parse(raw);
+    ticketId = ticketData.id;
     if (
       ticketData.hash
     ) {
@@ -431,10 +358,9 @@ async function validateTicket() {
       }
 
     }
-  } catch {
-
-
-
+  } 
+  catch 
+  {
     ticketId = ticketInput.value.trim();
   }
 
@@ -733,14 +659,9 @@ function updateStatus(
 
   }
 
-  /* DUPLICATE */
-
   if (
-
     type === "error" &&
-
     title.includes("DUPLICADO")
-
   ) {
 
     document.body.classList.add(
@@ -752,12 +673,10 @@ function updateStatus(
       document.body.classList.remove(
         "scan-duplicate"
       );
-
     }, 2000);
 
   }
 
-  /* INVALID */
 
   if (
 
@@ -798,49 +717,23 @@ function updateStatus(
       <div class="status-subtitle">
         ${subtitle}
       </div>
-
       <div class="status-meta">
         ${meta}
       </div>
-
     </div>
-
   `;
 
 }
 
-/* ========================= */
-/* LOGS */
-/* ========================= */
 
 function addLog(text) {
+  const logs = document.getElementById("logsContainer");
+  const item = document.createElement("div");
 
-  const logs =
-
-    document.getElementById(
-      "logsContainer"
-    );
-
-  const item =
-
-    document.createElement(
-      "div"
-    );
-
-  item.className =
-    "log-item";
-
-  item.innerText =
-
-    `${new Date().toLocaleTimeString()} - ${text}`;
-
+  item.className = "log-item";
+  item.innerText = `${new Date().toLocaleTimeString()} - ${text}`;
   logs.prepend(item);
-
 }
-
-/* ========================= */
-/* ALERT */
-/* ========================= */
 
 function triggerAlert() {
 
@@ -871,14 +764,9 @@ function triggerAlert() {
 
 }
 
-/* ========================= */
-/* CAMERA QR */
-/* ========================= */
 
 function startScanner() {
-
   const scanner =
-
     new Html5Qrcode(
       "reader"
     );
@@ -892,55 +780,29 @@ function startScanner() {
 
     {
       fps: 10,
-
       qrbox: 250
     },
 
     decodedText => {
-
-      const now =
-        Date.now();
-
-      /*
-        Anti doble lectura.
-      */
-
+      const now = Date.now();
       if (
-
         decodedText ===
           lastScan &&
 
-        now -
-          lastScanTime <
-          3000
-
+        now - lastScanTime < 3000
       ) {
-
         return;
 
       }
 
-      lastScan =
-        decodedText;
-
-      lastScanTime =
-        now;
-
-      ticketInput.value =
-        decodedText;
-
+      lastScan = decodedText;
+      lastScanTime = now;
+      ticketInput.value = decodedText;
       validateTicket();
-
     }
-
   )
 
   .then(() => {
-
-    console.log(
-      "📷 Cámara iniciada"
-    );
-
     addLog(
       "📷 Cámara activa"
     );
@@ -949,25 +811,17 @@ function startScanner() {
 
   .catch(err => {
 
-    console.error(
-      "❌ Error cámara:",
-      err
-    );
+    console.error( "❌ Error cámara:",
+                    err
+                  );
 
-    addLog(
-      "❌ Cámara bloqueada"
-    );
+    addLog( "❌ Cámara bloqueada" );
 
     updateStatus(
-
       "warning",
-
       "CÁMARA NO DISPONIBLE",
-
       "Permite acceso a la cámara",
-
       "CAMERA ACCESS REQUIRED"
-
     );
   });
 }
@@ -975,15 +829,10 @@ function startScanner() {
 validateBtn
 
   .addEventListener(
-
     "click",
-
     validateTicket
-
   );
 
-addLog(
-  "🟢 Sistema iniciado"
-);
+addLog("🟢 Sistema iniciado");
 
 updateConnectionStatus()
