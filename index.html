@@ -103,25 +103,34 @@
         <!-- ========================================= -->
 
         <section class="stats-container">
+           <section class="stats-container">
 
-            <div class="stat-card success">
+    <div class="stat-card success">
+        <h2 id="availableCount">0</h2>
+        <span>Disponibles</span>
+    </div>
 
-                <h2 id="okCount">
-                    0
-                </h2>
+    <div class="stat-card">
+        <h2 id="okCount">0</h2>
+        <span>Ingresos</span>
+    </div>
 
-                <span>
-                    Ingresos
-                </span>
+    <div class="stat-card warning">
+        <h2 id="dupCount">0</h2>
+        <span>Duplicados</span>
+    </div>
 
-            </div>
+    <div class="stat-card danger">
+        <h2 id="invalidCount">0</h2>
+        <span>Inválidos</span>
+    </div>
+
+</section>
 
             <div class="stat-card warning">
-
                 <h2 id="dupCount">
                     0
                 </h2>
-
                 <span>
                     Duplicados
                 </span>
@@ -394,15 +403,7 @@
         </div>
 
     </footer>
-
-    <!-- ========================================= -->
-    <!-- SCRIPTS -->
-    <!-- ========================================= -->
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
     <script src="script.js"></script>
-
 </body>
-
 </html>

@@ -1,838 +1,728 @@
 const SUPABASE_URL = "https://uqrbykxgsarsfyyvmibr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8K6sVOFwsLbVOUGUr6a-5A_ldVlLQxu";
-const supabaseClient =
-  supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  ); 
 
-  const API =
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const API =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
     : "https://www.cosmicpass.space";
 
 let currentUser = null;
-let offlineTickets =
-
-  JSON.parse(
-
-    localStorage.getItem(
-      "offlineTickets"
-    ) || "[]"
-
-  );
-
-let pendingSync =
-
-  JSON.parse(
-
-    localStorage.getItem(
-      "pendingSync"
-    ) || "[]"
-
-  );
-
-const ticketInput =
-  document.getElementById(
-    "ticketInput"
-  );
-
-const validateBtn =
-  document.getElementById(
-    "validateBtn"
-  );
-
-const statusBox =
-  document.getElementById(
-    "statusBox"
-  );
-
-
-let okCount = 0;
+let scanner = null;
+let isValidating = false;
 let dupCount = 0;
 let invalidCount = 0;
 let lastScan = "";
 let lastScanTime = 0;
 
-const alertSound =
+let offlineTickets = readLocalArray("offlineTickets");
+let pendingSync = readLocalArray("pendingSync");
 
-  new Audio( "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+const ticketInput = document.getElementById("ticketInput");
+const validateBtn = document.getElementById("validateBtn");
+const statusBox = document.getElementById("statusBox");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const alertSound = new Audio(
+  "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+);
+
+function readLocalArray(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch (error) {
+    console.error(`No se pudo leer ${key}:`, error);
+    return [];
+  }
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = String(value);
+}
+
+function sameValue(left, right) {
+  return String(left ?? "") === String(right ?? "");
+}
+
+function ticketIsUsed(ticket) {
+  const value = ticket?.used;
+
+  return (
+    value === true ||
+    value === 1 ||
+    value === "1" ||
+    String(value).toLowerCase() === "true"
+  );
+}
+
+function currentEventTickets() {
+  if (!Array.isArray(offlineTickets)) return [];
+  if (!currentUser) return offlineTickets;
+
+  return offlineTickets.filter(
+    ticket =>
+      sameValue(ticket.id_evento, currentUser.id_evento) &&
+      sameValue(ticket.id_productora, currentUser.id_productora)
+  );
+}
+
+function updateTicketStats() {
+  const tickets = currentEventTickets();
+  const totalCount = tickets.length;
+  const usedCount = tickets.filter(ticketIsUsed).length;
+  const availableCount = totalCount - usedCount;
+
+  setText("totalCount", totalCount);
+  setText("syncCount", totalCount);
+  setText("availableCount", availableCount);
+  setText("usedCount", usedCount);
+  setText("okCount", usedCount);
+  setText("dupCount", dupCount);
+  setText("invalidCount", invalidCount);
+
+  const lastSync = document.getElementById("lastSync");
+  if (lastSync) {
+    lastSync.textContent =
+      `Última sincronización: ${new Date().toLocaleTimeString()}`;
+  }
+}
+
+function saveOfflineTickets() {
+  localStorage.setItem(
+    "offlineTickets",
+    JSON.stringify(offlineTickets)
+  );
+}
+
+function savePendingSync() {
+  localStorage.setItem(
+    "pendingSync",
+    JSON.stringify(pendingSync)
+  );
+}
 
 async function syncOfflineTickets() {
+  if (!currentUser) return;
 
-    if (!navigator.onLine) {
+  if (!navigator.onLine) {
+    addLog("📦 Modo offline");
+    updateConnectionStatus();
+    updateTicketStats();
+    return;
+  }
 
-        addLog("📦 MODO OFFLINE");
-        updateConnectionStatus();
-        return;
+  try {
+    const { data, error } = await supabaseClient
+      .from("qr_valida_tickets")
+      .select("*")
+      .eq("id_evento", currentUser.id_evento)
+      .eq("id_productora", currentUser.id_productora);
 
-    }
+    if (error) throw error;
 
+    offlineTickets = Array.isArray(data) ? data : [];
+    saveOfflineTickets();
+    updateTicketStats();
+    updateConnectionStatus();
+    addLog(`☁️ ${offlineTickets.length} tickets sincronizados`);
+  } catch (error) {
+    console.error("Error al sincronizar tickets:", error);
+    addLog("❌ Error al sincronizar tickets");
+    updateTicketStats();
+  }
+}
+
+async function syncPendingTickets() {
+  if (!currentUser || !navigator.onLine || pendingSync.length === 0) {
+    return;
+  }
+
+  addLog("☁️ Sincronizando accesos pendientes...");
+
+  const failed = [];
+
+  for (const item of pendingSync) {
     try {
-
-     const { data, error } = await supabaseClient
-                              .from("qr_valida_tickets")
-                              .select("*")
-                              .eq("id_evento", currentUser.id_evento)
-                              .eq("id_productora", currentUser.id_productora);
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-
-        offlineTickets = data;
-
-        localStorage.setItem(
-            "offlineTickets",
-            JSON.stringify(data)
-        );
-
-        addLog(`☁️ ${data.length} tickets sincronizados`);
-
-        updateConnectionStatus();
-
-    } catch (err) {
-
-        console.error(err);
-
-    }
-  }
-
-async function syncPendingTickets(){
-
-
-  if(!navigator.onLine){
-    return;
-  }
-
-  if(!pendingSync.length){
-
-    return;
-
-  }
-
-  addLog(
-    "☁️ Sincronizando pendientes..."
-  );
-
-  for(const item of pendingSync){
-
-    try{
-
-      await supabaseClient
-
-        .from(
-          "qr_valida_tickets"
-        )
-
+      const { error } = await supabaseClient
+        .from("qr_valida_tickets")
         .update({
-          used: item.used,
+          used: true,
           used_at: item.used_at
         })
+        .eq("id", item.id)
+        .eq("id_evento", item.id_evento)
+        .eq("id_productora", item.id_productora);
 
-        .eq(
-          "id",
-          item.id
-        );
-
-    }catch(err){
-
-      console.error(err);
-
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error sincronizando ticket pendiente:", error);
+      failed.push(item);
     }
-
   }
 
-  pendingSync = [];
+  pendingSync = failed;
+  savePendingSync();
 
-  localStorage.setItem("pendingSync",JSON.stringify([]));
-
-  addLog(
-    "✅ Pendientes sincronizados"
-  );
-
+  if (failed.length === 0) {
+    addLog("✅ Pendientes sincronizados");
+  } else {
+    addLog(`⚠️ ${failed.length} pendientes sin sincronizar`);
+  }
 }
-
-
-window.addEventListener(
-  "online",
-
-  async () => {
-
-    addLog(
-      "🟢 Internet restaurado"
-    );
-    updateConnectionStatus();
-    await syncOfflineTickets();
-    await syncPendingTickets();
-  }
-);
-
-window.addEventListener(
-  "offline",
-  () => {
-
-    addLog("🟠 Modo offline activado");
-
-    updateConnectionStatus();
-
-  }
-
-);
 
 async function validarSesion() {
+  const usuarioGuardado = localStorage.getItem("scanner_user");
 
-    const usuarioGuardado = localStorage.getItem("scanner_user");
-    if (usuarioGuardado) {
-
-        currentUser = JSON.parse(usuarioGuardado);
-
-        console.log("✅ Sesión recuperada");
-
-        return true;
-
-    }
-
-
-    const token =
-        new URLSearchParams(location.search)
-            .get("token");
-
-    if (!token) {
-
-        alert("Acceso no autorizado");
-
-        location.href =
-            "https://www.cosmicpass.space";
-
-        return false;
-
-    }
-
+  if (usuarioGuardado) {
     try {
+      currentUser = JSON.parse(usuarioGuardado);
+      return Boolean(currentUser);
+    } catch (error) {
+      console.error("Sesión local inválida:", error);
+      localStorage.removeItem("scanner_user");
+    }
+  }
 
-        const response =
-            await fetch(
-                `${API}/scanner/validate?token=${token}`
-            );
+  const token = new URLSearchParams(location.search).get("token");
 
-        const data =
-            await response.json();
+  if (!token) {
+    alert("Acceso no autorizado");
+    location.href = "https://www.cosmicpass.space";
+    return false;
+  }
 
-        if (!data.success) {
+  try {
+    const response = await fetch(
+      `${API}/scanner/validate?token=${encodeURIComponent(token)}`
+    );
 
-            alert("Sesión inválida");
+    const data = await response.json();
 
-            location.href =
-                "https://www.cosmicpass.space";
-
-            return false;
-
-        }
-
-        currentUser = data.user;
-        localStorage.setItem( "scanner_user",JSON.stringify(data.user));
-        return true;
-
-    } catch (err) {
-        console.error(err);
-        alert("No fue posible validar la sesión.");
-        return false;
+    if (!response.ok || !data.success || !data.user) {
+      throw new Error(data.message || "Sesión inválida");
     }
 
+    currentUser = data.user;
+    localStorage.setItem(
+      "scanner_user",
+      JSON.stringify(currentUser)
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Error validando sesión:", error);
+    alert("No fue posible validar la sesión.");
+    return false;
+  }
 }
 
-window.addEventListener("load", async () => {
-
-    const ok = await validarSesion();
-
-    if (!ok) return
-
-    document.getElementById("staffDisplay").innerText = currentUser.nombre;
-    document.getElementById("roleDisplay").innerText = currentUser.rol;
-    document.getElementById("productoraDisplay").innerText = currentUser.productora_nombre || "-";
-
-    const operador = document.getElementById("operadorPanel");
-    if (operador) {
-        operador.innerText = currentUser.nombre;
-    }
-
-    const productora = document.getElementById("productoraPanel");
-    if (productora) {
-        productora.innerText =
-            currentUser.productora_nombre || "-";
-    }
-
-    updateConnectionStatus();
-    addLog(`🔐 ${currentUser.nombre}`);
-    await syncOfflineTickets();
-    await syncPendingTickets();
-    startScanner();
-
-});
+function renderUserData() {
+  setText("staffDisplay", currentUser?.nombre || "-");
+  setText("roleDisplay", currentUser?.rol || "-");
+  setText(
+    "productoraDisplay",
+    currentUser?.productora_nombre || "-"
+  );
+  setText("operadorPanel", currentUser?.nombre || "-");
+  setText(
+    "productoraPanel",
+    currentUser?.productora_nombre || "-"
+  );
+  setText(
+    "eventDisplay",
+    currentUser?.evento_nombre ||
+      currentUser?.nombre_evento ||
+      currentUser?.evento ||
+      "Evento seleccionado"
+  );
+}
 
 function updateConnectionStatus() {
-    const connection = document.getElementById("connectionStatus");
-    const estado = document.getElementById("estadoPanel");
-    const text = navigator.onLine
-        ? "🟢 Online"
-        : "🟠 Offline";
+  const text = navigator.onLine
+    ? "🟢 Online"
+    : "🟠 Offline";
 
-    if (connection) { connection.innerText = text; }
-    if (estado) { estado.innerText = text; }
+  setText("connectionStatus", text);
+  setText("estadoPanel", text);
+}
+
+function decodeTicketInput(rawValue) {
+  let raw = rawValue.trim();
+  let ticketData = null;
+  let ticketId = "";
+
+  try {
+    if (raw.startsWith("CPASS|")) {
+      raw = atob(raw.slice(6));
+    }
+
+    ticketData = JSON.parse(raw);
+    ticketId = String(ticketData?.id || "").trim();
+
+    if (ticketData?.hash) {
+      const expected = btoa(
+        String(ticketData.id) +
+        String(ticketData.name || "") +
+        "cosmic_secret"
+      );
+
+      if (expected !== ticketData.hash) {
+        return {
+          altered: true,
+          ticketData,
+          ticketId
+        };
+      }
+    }
+  } catch {
+    ticketId = rawValue.trim();
+  }
+
+  return {
+    altered: false,
+    ticketData,
+    ticketId
+  };
+}
+
+async function getTicket(ticketId) {
+  if (navigator.onLine) {
+    const { data, error } = await supabaseClient
+      .from("qr_valida_tickets")
+      .select("*")
+      .eq("id", ticketId)
+      .eq("id_evento", currentUser.id_evento)
+      .eq("id_productora", currentUser.id_productora)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  }
+
+  addLog("📦 Validación offline");
+
+  return offlineTickets.find(
+    ticket =>
+      sameValue(ticket.id, ticketId) &&
+      sameValue(ticket.id_evento, currentUser.id_evento) &&
+      sameValue(ticket.id_productora, currentUser.id_productora)
+  ) || null;
+}
+
+function upsertLocalTicket(ticket) {
+  const index = offlineTickets.findIndex(
+    localTicket =>
+      sameValue(localTicket.id, ticket.id) &&
+      sameValue(localTicket.id_evento, ticket.id_evento) &&
+      sameValue(localTicket.id_productora, ticket.id_productora)
+  );
+
+  if (index >= 0) {
+    offlineTickets[index] = ticket;
+  } else {
+    offlineTickets.push(ticket);
+  }
+
+  saveOfflineTickets();
+  updateTicketStats();
+}
+
+async function markTicketAsUsed(ticket) {
+  const usedAt = new Date().toISOString();
+
+  if (!navigator.onLine) {
+    const updatedTicket = {
+      ...ticket,
+      used: true,
+      used_at: usedAt
+    };
+
+    upsertLocalTicket(updatedTicket);
+
+    pendingSync.push({
+      id: ticket.id,
+      id_evento: currentUser.id_evento,
+      id_productora: currentUser.id_productora,
+      used_at: usedAt
+    });
+
+    savePendingSync();
+    addLog("📡 Acceso pendiente de sincronización");
+    return updatedTicket;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("qr_valida_tickets")
+    .update({
+      used: true,
+      used_at: usedAt
+    })
+    .eq("id", ticket.id)
+    .eq("id_evento", currentUser.id_evento)
+    .eq("id_productora", currentUser.id_productora)
+    .or("used.eq.false,used.is.null")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    const refreshed = await getTicket(ticket.id);
+    return {
+      duplicate: true,
+      ticket: refreshed || ticket
+    };
+  }
+
+  upsertLocalTicket(data);
+  return data;
 }
 
 async function validateTicket() {
+  if (isValidating) return;
 
   if (!currentUser) {
-
     triggerAlert();
-
     updateStatus(
       "warning",
       "ACCESO RESTRINGIDO",
       "Debes iniciar sesión",
       "LOGIN REQUIRED"
     );
-
     return;
-
   }
 
-  let ticketData = null;
-  let ticketId = "";
+  const rawInput = ticketInput?.value || "";
+  const decoded = decodeTicketInput(rawInput);
 
-  try {
-
-    let raw = ticketInput.value.trim();
-
-    if (
-      raw.startsWith(
-        "CPASS|"
-      )
-    ) {
-
-      raw =
-
-        atob(
-
-          raw.replace(
-            "CPASS|",
-            ""
-          )
-        );
-    }
-
-    ticketData = JSON.parse(raw);
-    ticketId = ticketData.id;
-    if (
-      ticketData.hash
-    ) {
-
-      const expected =
-
-        btoa(
-          ticketData.id +
-          ticketData.name +
-          "cosmic_secret"
-        );
-
-      if (
-        expected !==
-        ticketData.hash
-      ) {
-
-        triggerAlert();
-        updateStatus(
-          "error",
-          "⚠️ Ticket alterado",
-          "Firma inválida",
-          "TAMPER DETECTED"
-        );
-
-        addLog(`⚠️ Ticket alterado: ${ticketData.id}`);
-        return;
-
-      }
-
-    }
-  } 
-  catch 
-  {
-    ticketId = ticketInput.value.trim();
+  if (decoded.altered) {
+    triggerAlert();
+    updateStatus(
+      "error",
+      "TICKET ALTERADO",
+      "Firma inválida",
+      "TAMPER DETECTED"
+    );
+    addLog(`⚠️ Ticket alterado: ${decoded.ticketId}`);
+    clearTicketInput();
+    return;
   }
 
-  ticketId =  ticketId.trim();
+  const ticketId = decoded.ticketId.trim();
 
   if (!ticketId) {
-
     updateStatus(
       "warning",
-      "Ingresa un ticket",
-      "Escanea o pega manualmente el ID",
+      "INGRESA UN TICKET",
+      "Escanea o captura el folio",
       "EMPTY INPUT"
     );
     return;
   }
 
-  let ticket = null;
-  if(navigator.onLine){
+  isValidating = true;
+  if (validateBtn) validateBtn.disabled = true;
 
-    try{
+  try {
+    const ticket = await getTicket(ticketId);
 
-      const { data } = await supabaseClient
-    .from("qr_valida_tickets")
-    .select("*")
-    .eq("id", ticketId)
-    .eq("id_evento", currentUser.id_evento)
-    .eq("id_productora", currentUser.id_productora)
-    .single();
-
-      ticket = data;
-
-      console.log(
-        "🟢 ONLINE MODE"
+    if (!ticket) {
+      invalidCount += 1;
+      updateTicketStats();
+      triggerAlert();
+      updateStatus(
+        "error",
+        "ACCESO DENEGADO",
+        "El ticket no existe",
+        "INVALID TICKET"
       );
-
-    }catch(err){
-
-      console.error(err);
-
+      addLog(`❌ Ticket inválido: ${ticketId}`);
+      clearTicketInput();
+      return;
     }
 
-  }else{
+    if (ticketIsUsed(ticket)) {
+      showDuplicate(ticket);
+      return;
+    }
 
-ticket = offlineTickets.find(
-    t =>
-        t.id === ticketId &&
-        t.id_evento === currentUser.id_evento &&
-        t.id_productora === currentUser.id_productora
-);
+    const result = await markTicketAsUsed(ticket);
 
-    addLog("📦 Validación offline");
+    if (result?.duplicate) {
+      showDuplicate(result.ticket);
+      return;
+    }
 
-  }
+    const updatedTicket = result;
+    const displayName =
+      decoded.ticketData?.name ||
+      updatedTicket.name ||
+      "Invitado";
+    const displayType =
+      decoded.ticketData?.type ||
+      updatedTicket.type ||
+      "Ticket";
 
-  if (!ticket) {
-
-    invalidCount++;
-
-    document
-
-      .getElementById(
-        "invalidCount"
-      )
-
-      .innerText =
-        invalidCount;
-
-    triggerAlert();
-
+    updateTicketStats();
+    updateTicketPreview(updatedTicket, displayName, displayType);
     updateStatus(
-      "error",
-      "ACCESO DENEGADO",
-      "El ticket no existe",
-      "INVALID TICKET"
+      "success",
+      "ACCESO AUTORIZADO",
+      displayName,
+      displayType
     );
-
-    addLog(`❌ Ticket inválido: ${ticketId}`);
-
-    ticketInput.value = "";
-
-    return;
-
-  }
-
-
-
-  if (ticket.used) {
-
-    if(navigator.onLine){
-      try {
-        await fetch( "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify({
-                username:
-                  "COSMIC SECURITY",
-                content:
-
-`🚨 ALERTA DUPLICADO
-
-🎫 ${ticket.id}
-👤 ${ticket.name}
-👮 ${currentUser.nombre}`
-
-              })
-
-          }
-
-        );
-
-      } catch(err) {
-
-        console.error(err);
-
-      }
-
-    }
-
-    dupCount++;
-
-    document
-
-      .getElementById(
-        "dupCount"
-      )
-
-      .innerText =
-        dupCount;
-
+    addLog(
+      `✅ ${currentUser.nombre} autorizó ${updatedTicket.id} (${displayName})`
+    );
+    clearTicketInput();
+  } catch (error) {
+    console.error("Error validando ticket:", error);
     triggerAlert();
     updateStatus(
       "error",
-      "TICKET DUPLICADO",
-      `${ticket.name}`,
-      `PRIMER ACCESO ${ticket.used_at}`
+      "ERROR DE VALIDACIÓN",
+      "No fue posible validar el ticket",
+      "TRY AGAIN"
     );
-
-    addLog(
-      `🚨 Duplicado: ${ticket.id}`
-    );
-
-    ticketInput.value = "";
-
-    return;
-
+    addLog("❌ Error durante la validación");
+  } finally {
+    isValidating = false;
+    if (validateBtn) validateBtn.disabled = false;
   }
-
-  ticket.used = true;
-  ticket.used_at = new Date().toLocaleTimeString();
-
-  const localIndex = offlineTickets.findIndex(
-      t => t.id === ticket.id
-    );
-
-  if(localIndex !== -1){
-    offlineTickets[localIndex] = ticket;
-    localStorage.setItem(
-      "offlineTickets",
-      JSON.stringify(
-        offlineTickets
-      )
-
-    );
-
-  }
-
-
-
-  if(navigator.onLine){
-
-    try{
-
-await supabaseClient
-    .from("qr_valida_tickets")
-    .update({
-        used: true,
-        used_at: ticket.used_at
-    })
-    .eq("id", ticket.id)
-    .eq("id_productora", currentUser.id_productora);
-
-    }catch(err){
-
-      console.error(err);
-
-    }
-
-  }else{
-
-    pendingSync.push({
-      id: ticket.id,
-      used: true,
-      used_at:
-      ticket.used_at
-    });
-
-    localStorage.setItem(
-
-      "pendingSync",
-
-      JSON.stringify(
-        pendingSync
-      )
-
-    );
-
-    addLog(
-      "📡 Pendiente de sincronización"
-    );
-
-  }
-
-
-
-  const displayName = ticketData?.name ||  ticket.name;
-  const displayType = ticketData?.type || ticket.type;
-  okCount++;
-  document
-
-    .getElementById(
-      "okCount"
-    )
-
-    .innerText =
-      okCount;
-
-  updateStatus(
-    "success",
-    "ACCESO AUTORIZADO",
-    displayName,
-    displayType
-  );
-
-  addLog(`✅ ${currentUser.nombre} autorizó ${ticket.id} (${displayName})`);
-
-  ticketInput.value = "";
-
 }
 
+function showDuplicate(ticket) {
+  dupCount += 1;
+  updateTicketStats();
+  triggerAlert();
 
-function updateStatus(
-  type,
-  title,
-  subtitle,
-  meta
-) {
+  updateStatus(
+    "error",
+    "TICKET DUPLICADO",
+    ticket?.name || "Ticket utilizado",
+    ticket?.used_at
+      ? `PRIMER ACCESO ${formatDateTime(ticket.used_at)}`
+      : "TICKET ALREADY USED"
+  );
 
-  statusBox.className =
-    `status ${type}`;
+  addLog(`🚨 Duplicado: ${ticket?.id || "sin folio"}`);
+  clearTicketInput();
+}
 
-  let icon = "◎";
+function formatDateTime(value) {
+  if (!value) return "-";
 
-  if (type === "success") {
-    icon = "✓";
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
   }
 
-  if (type === "error") {
-    icon = "✕";
-  }
+  return date.toLocaleString();
+}
 
-  if (type === "warning") {
-    icon = "⚠";
-  }
+function updateTicketPreview(ticket, name, type) {
+  setText("ticketNombre", name || "-");
+  setText("ticketTipo", type || "-");
+  setText("ticketCodigo", ticket?.id || "-");
+  setText("ticketHora", new Date().toLocaleTimeString());
+}
 
-  /* RESET FX */
+function clearTicketInput() {
+  if (!ticketInput) return;
+  ticketInput.value = "";
+  ticketInput.focus();
+}
+
+function updateStatus(type, title, subtitle, meta) {
+  if (!statusBox) return;
+
+  statusBox.className = `status ${type}`;
+
+  const icons = {
+    success: "✓",
+    error: "✕",
+    warning: "⚠"
+  };
+
+  const icon = icons[type] || "◎";
+
+  statusBox.replaceChildren();
+
+  const iconElement = document.createElement("div");
+  iconElement.className = "status-icon";
+  iconElement.textContent = icon;
+
+  const content = document.createElement("div");
+  content.className = "status-content";
+
+  const titleElement = document.createElement("div");
+  titleElement.className = "status-title";
+  titleElement.textContent = title || "";
+
+  const subtitleElement = document.createElement("div");
+  subtitleElement.className = "status-subtitle";
+  subtitleElement.textContent = subtitle || "";
+
+  const metaElement = document.createElement("div");
+  metaElement.className = "status-meta";
+  metaElement.textContent = meta || "";
+
+  content.append(titleElement, subtitleElement, metaElement);
+  statusBox.append(iconElement, content);
 
   document.body.classList.remove(
-
     "scan-success",
     "scan-duplicate",
     "scan-invalid"
-
   );
 
-  /* SUCCESS */
-
   if (type === "success") {
-
-    document.body.classList.add(
-      "scan-success"
+    document.body.classList.add("scan-success");
+    setTimeout(
+      () => document.body.classList.remove("scan-success"),
+      600
     );
-
-    setTimeout(() => {
-
-      document.body.classList.remove(
-        "scan-success"
-      );
-
-    }, 600);
-
-  }
-
-  if (
-    type === "error" &&
-    title.includes("DUPLICADO")
-  ) {
-
-    document.body.classList.add(
-      "scan-duplicate"
+  } else if (title?.includes("DUPLICADO")) {
+    document.body.classList.add("scan-duplicate");
+    setTimeout(
+      () => document.body.classList.remove("scan-duplicate"),
+      2000
     );
-
-    setTimeout(() => {
-
-      document.body.classList.remove(
-        "scan-duplicate"
-      );
-    }, 2000);
-
-  }
-
-
-  if (
-
-    type === "error" &&
-
-    title.includes("DENEGADO")
-
-  ) {
-
-    document.body.classList.add(
-      "scan-invalid"
+  } else if (title?.includes("DENEGADO")) {
+    document.body.classList.add("scan-invalid");
+    setTimeout(
+      () => document.body.classList.remove("scan-invalid"),
+      1600
     );
-
-    setTimeout(() => {
-
-      document.body.classList.remove(
-        "scan-invalid"
-      );
-
-    }, 1600);
-
   }
-
-  /* RENDER */
-
-  statusBox.innerHTML = `
-
-    <div class="status-icon">
-      ${icon}
-    </div>
-
-    <div class="status-content">
-
-      <div class="status-title">
-        ${title}
-      </div>
-
-      <div class="status-subtitle">
-        ${subtitle}
-      </div>
-      <div class="status-meta">
-        ${meta}
-      </div>
-    </div>
-  `;
-
 }
-
 
 function addLog(text) {
   const logs = document.getElementById("logsContainer");
-  const item = document.createElement("div");
+  if (!logs) return;
 
+  const item = document.createElement("div");
   item.className = "log-item";
-  item.innerText = `${new Date().toLocaleTimeString()} - ${text}`;
+  item.textContent =
+    `${new Date().toLocaleTimeString()} - ${text}`;
+
   logs.prepend(item);
 }
 
 function triggerAlert() {
-
-  document.body.classList.add(
-    "alert-mode"
-  );
+  document.body.classList.add("alert-mode");
 
   alertSound.currentTime = 0;
+  alertSound.play().catch(() => {});
 
-  alertSound
-    .play()
-    .catch(err => {
-
-      console.log(
-        "Audio bloqueado:",
-        err
-      );
-
-    });
-
-  setTimeout(() => {
-
-    document.body.classList.remove(
-      "alert-mode"
-    );
-
-  }, 2000);
-
+  setTimeout(
+    () => document.body.classList.remove("alert-mode"),
+    2000
+  );
 }
 
+async function startScanner() {
+  if (!document.getElementById("reader")) return;
 
-function startScanner() {
-  const scanner =
-    new Html5Qrcode(
-      "reader"
-    );
+  try {
+    scanner = new Html5Qrcode("reader");
 
-  scanner.start(
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      decodedText => {
+        const now = Date.now();
 
-    {
-      facingMode:
-        "environment"
-    },
+        if (
+          decodedText === lastScan &&
+          now - lastScanTime < 3000
+        ) {
+          return;
+        }
 
-    {
-      fps: 10,
-      qrbox: 250
-    },
+        lastScan = decodedText;
+        lastScanTime = now;
 
-    decodedText => {
-      const now = Date.now();
-      if (
-        decodedText ===
-          lastScan &&
+        if (ticketInput) {
+          ticketInput.value = decodedText;
+        }
 
-        now - lastScanTime < 3000
-      ) {
-        return;
-
+        validateTicket();
       }
-
-      lastScan = decodedText;
-      lastScanTime = now;
-      ticketInput.value = decodedText;
-      validateTicket();
-    }
-  )
-
-  .then(() => {
-    addLog(
-      "📷 Cámara activa"
     );
 
-  })
-
-  .catch(err => {
-
-    console.error( "❌ Error cámara:",
-                    err
-                  );
-
-    addLog( "❌ Cámara bloqueada" );
-
+    addLog("📷 Cámara activa");
+  } catch (error) {
+    console.error("Error de cámara:", error);
+    addLog("❌ Cámara bloqueada");
     updateStatus(
       "warning",
       "CÁMARA NO DISPONIBLE",
-      "Permite acceso a la cámara",
+      "Permite el acceso a la cámara",
       "CAMERA ACCESS REQUIRED"
     );
-  });
+  }
 }
 
-validateBtn
+async function logout() {
+  try {
+    if (scanner) {
+      await scanner.stop();
+    }
+  } catch (error) {
+    console.error("No se pudo detener la cámara:", error);
+  }
 
-  .addEventListener(
-    "click",
-    validateTicket
-  );
+  localStorage.removeItem("scanner_user");
+  location.href = "https://www.cosmicpass.space";
+}
 
-addLog("🟢 Sistema iniciado");
+window.addEventListener("online", async () => {
+  addLog("🟢 Internet restaurado");
+  updateConnectionStatus();
+  await syncPendingTickets();
+  await syncOfflineTickets();
+});
 
-updateConnectionStatus()
+window.addEventListener("offline", () => {
+  addLog("🟠 Modo offline activado");
+  updateConnectionStatus();
+  updateTicketStats();
+});
+
+window.addEventListener("load", async () => {
+  updateConnectionStatus();
+  updateTicketStats();
+
+  const validSession = await validarSesion();
+  if (!validSession) return;
+
+  renderUserData();
+  addLog(`🔐 ${currentUser.nombre || "Operador"}`);
+
+  await syncPendingTickets();
+  await syncOfflineTickets();
+  await startScanner();
+});
+
+validateBtn?.addEventListener("click", validateTicket);
+
+ ticketInput?.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    validateTicket();
+  }
+});
+
+logoutBtn?.addEventListener("click", logout);
