@@ -108,6 +108,14 @@ function savePendingSync() {
   );
 }
 
+function hasValue(value) {
+  return (
+    value !== null &&
+    value !== undefined &&
+    String(value).trim() !== ""
+  );
+}
+
 async function syncOfflineTickets() {
   if (!currentUser) return;
 
@@ -119,22 +127,84 @@ async function syncOfflineTickets() {
   }
 
   try {
-    const { data, error } = await supabaseClient
+    if (!hasValue(currentUser.id_productora)) {
+      throw new Error("El usuario no tiene id_productora");
+    }
+
+    let query = supabaseClient
       .from("qr_valida_tickets")
       .select("*")
-      .eq("id_evento", currentUser.id_evento)
       .eq("id_productora", currentUser.id_productora);
+
+    /*
+     * Solo filtra por evento cuando realmente existe.
+     * Evita enviar id_evento=eq.null.
+     */
+    if (hasValue(currentUser.id_evento)) {
+      query = query.eq(
+        "id_evento",
+        currentUser.id_evento
+      );
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
-    offlineTickets = Array.isArray(data) ? data : [];
+    offlineTickets = Array.isArray(data)
+      ? data
+      : [];
+
+    /*
+     * Si el usuario no trae evento, intenta detectarlo
+     * automáticamente cuando todos los tickets pertenecen
+     * a un solo evento.
+     */
+    if (!hasValue(currentUser.id_evento)) {
+      const eventos = [
+        ...new Set(
+          offlineTickets
+            .map(ticket => ticket.id_evento)
+            .filter(hasValue)
+            .map(String)
+        )
+      ];
+
+      if (eventos.length === 1) {
+        currentUser.id_evento = eventos[0];
+
+        localStorage.setItem(
+          "scanner_user",
+          JSON.stringify(currentUser)
+        );
+
+        addLog(
+          `🎫 Evento detectado: ${currentUser.id_evento}`
+        );
+      } else if (eventos.length > 1) {
+        throw new Error(
+          "La productora tiene varios eventos y la sesión no indica cuál utilizar"
+        );
+      }
+    }
+
     saveOfflineTickets();
     updateTicketStats();
     updateConnectionStatus();
-    addLog(`☁️ ${offlineTickets.length} tickets sincronizados`);
+
+    addLog(
+      `☁️ ${offlineTickets.length} tickets sincronizados`
+    );
   } catch (error) {
-    console.error("Error al sincronizar tickets:", error);
-    addLog("❌ Error al sincronizar tickets");
+    console.error(
+      "Error al sincronizar tickets:",
+      error
+    );
+
+    addLog(
+      `❌ ${error.message || "Error al sincronizar tickets"}`
+    );
+
     updateTicketStats();
   }
 }
