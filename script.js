@@ -500,25 +500,38 @@ async function validateTicket() {
   isValidating = true;
   if (validateBtn) validateBtn.disabled = true;
 
-  try {
-    const ticket = await getTicket(ticketId);
+try {
+  const ticket = await getTicket(ticketId);
 
-    if (!ticket) {
-      invalidCount += 1;
-      updateTicketStats();
-      triggerAlert();
-      updateStatus(
-        "error",
-        "ACCESO DENEGADO",
-        "El ticket no existe",
-        "INVALID TICKET"
-      );
-      addLog(`❌ Ticket inválido: ${ticketId}`);
-      clearTicketInput();
-      return;
-    }
+  if (!ticket) {
+    invalidCount += 1;
+    updateTicketStats();
+    triggerAlert();
 
-    if (ticketIsUsed(ticket)) {
+    await sendDiscordAlert({
+      tipo: "INVALIDO",
+      ticketId: ticketId,
+      nombre: decoded.ticketData?.name,
+      evento:
+        currentUser?.evento_nombre ||
+        currentUser?.nombre_evento ||
+        currentUser?.evento,
+      operador: currentUser?.nombre
+    });
+
+    updateStatus(
+      "error",
+      "ACCESO DENEGADO",
+      "El ticket no existe",
+      "INVALID TICKET"
+    );
+
+    addLog(`❌ Ticket inválido: ${ticketId}`);
+    clearTicketInput();
+    return;
+  }
+
+  if (ticketIsUsed(ticket)) {
       showDuplicate(ticket);
       return;
     }
@@ -697,6 +710,67 @@ function triggerAlert() {
     () => document.body.classList.remove("alert-mode"),
     2000
   );
+}
+
+async function sendDiscordAlert({
+  tipo,
+  ticketId,
+  nombre,
+  evento,
+  operador
+}) {
+  const webhook = "https://discord.com/api/webhooks/1502078247813386351/bSLQr9Jv4jq_75z-GAMWid6JQipvOfl2jUqPcwS16dppw7uzzjp79R0sVWqermpZVNKV";
+
+  try {
+    await fetch(webhook, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: "Cosmic Pass Security",
+        embeds: [
+          {
+            title: tipo === "DUPLICADO"
+              ? "🚨 TICKET DUPLICADO"
+              : "⚠️ TICKET INVÁLIDO",
+
+            description:
+              tipo === "DUPLICADO"
+                ? "Se intentó utilizar nuevamente un ticket."
+                : "Se intentó validar un ticket inexistente.",
+
+            fields: [
+              {
+                name: "🎫 Ticket",
+                value: String(ticketId || "-"),
+                inline: true
+              },
+              {
+                name: "👤 Invitado",
+                value: String(nombre || "-"),
+                inline: true
+              },
+              {
+                name: "🎪 Evento",
+                value: String(evento || "-"),
+                inline: true
+              },
+              {
+                name: "👮 Operador",
+                value: String(operador || "-"),
+                inline: true
+              }
+            ],
+
+            timestamp: new Date().toISOString()
+          }
+        ]
+      })
+    });
+  } catch (error) {
+    console.error("Error enviando alerta a Discord:", error);
+  }
 }
 
 async function startScanner() {
