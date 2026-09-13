@@ -31,6 +31,8 @@ const logoutBtn = document.getElementById("logoutBtn");
 const alertSound = new Audio(
   "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
 );
+alertSound.preload = "auto";
+alertSound.volume = 1.0;
 
 function readLocalArray(key) {
   try {
@@ -586,6 +588,17 @@ function showDuplicate(ticket) {
   updateTicketStats();
   triggerAlert();
 
+    sendDiscordAlert({
+    tipo: "DUPLICADO",
+    ticketId: ticket?.id,
+    nombre: ticket?.name,
+    evento:
+      currentUser?.evento_nombre ||
+      currentUser?.nombre_evento ||
+      currentUser?.evento,
+    operador: currentUser?.nombre
+  });
+
   updateStatus(
     "error",
     "TICKET DUPLICADO",
@@ -703,14 +716,26 @@ function addLog(text) {
 function triggerAlert() {
   document.body.classList.add("alert-mode");
 
-  alertSound.currentTime = 0;
-  alertSound.play().catch(() => {});
+  try {
+    alertSound.pause();
+    alertSound.currentTime = 0;
 
-  setTimeout(
-    () => document.body.classList.remove("alert-mode"),
-    2000
-  );
+    const playPromise = alertSound.play();
+
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.warn("No se pudo reproducir la alerta:", error);
+      });
+    }
+  } catch (error) {
+    console.warn("Error reproduciendo alerta:", error);
+  }
+
+  setTimeout(() => {
+    document.body.classList.remove("alert-mode");
+  }, 2000);
 }
+
 async function sendDiscordAlert({
   tipo,
   ticketId,
