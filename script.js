@@ -711,7 +711,6 @@ function triggerAlert() {
     2000
   );
 }
-
 async function sendDiscordAlert({
   tipo,
   ticketId,
