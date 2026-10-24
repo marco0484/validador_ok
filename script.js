@@ -19,9 +19,11 @@ let dupCount = 0;
 let invalidCount = 0;
 let lastScan = "";
 let lastScanTime = 0;
-
+/*
 let offlineTickets = readLocalArray("offlineTickets");
 let pendingSync = readLocalArray("pendingSync");
+*/
+let offlineTickets = [];
 
 const ticketInput = document.getElementById("ticketInput");
 const validateBtn = document.getElementById("validateBtn");
@@ -34,6 +36,7 @@ const alertSound = new Audio(
 alertSound.preload = "auto";
 alertSound.volume = 1.0;
 
+/*
 function readLocalArray(key) {
   try {
     const value = JSON.parse(localStorage.getItem(key) || "[]");
@@ -43,6 +46,8 @@ function readLocalArray(key) {
     return [];
   }
 }
+  */
+
 
 function setText(id, value) {
   const element = document.getElementById(id);
@@ -96,6 +101,7 @@ function updateTicketStats() {
   }
 }
 
+/*
 function saveOfflineTickets() {
   localStorage.setItem(
     "offlineTickets",
@@ -110,6 +116,7 @@ function savePendingSync() {
   );
 }
 
+*/
 function hasValue(value) {
   return (
     value !== null &&
@@ -211,6 +218,7 @@ async function syncOfflineTickets() {
   }
 }
 
+/*
 async function syncPendingTickets() {
   if (!currentUser || !navigator.onLine || pendingSync.length === 0) {
     return;
@@ -248,6 +256,9 @@ async function syncPendingTickets() {
     addLog(`⚠️ ${failed.length} pendientes sin sincronizar`);
   }
 }
+  */
+
+
 
 async function validarSesion() {
   const usuarioGuardado = localStorage.getItem("scanner_user");
@@ -363,7 +374,7 @@ function decodeTicketInput(rawValue) {
     ticketId
   };
 }
-
+/*
 async function getTicket(ticketId) {
   if (navigator.onLine) {
     const { data, error } = await supabaseClient
@@ -387,7 +398,26 @@ async function getTicket(ticketId) {
       sameValue(ticket.id_productora, currentUser.id_productora)
   ) || null;
 }
+  */
 
+async function getTicket(ticketId) {
+  if (!navigator.onLine) {
+    throw new Error("SIN INTERNET: no se puede validar el acceso");
+  }
+
+  const { data, error } = await supabaseClient
+    .from("qr_valida_tickets")
+    .select("*")
+    .eq("id", ticketId)
+    .eq("id_evento", currentUser.id_evento)
+    .eq("id_productora", currentUser.id_productora)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+
+/*
 function upsertLocalTicket(ticket) {
   const index = offlineTickets.findIndex(
     localTicket =>
@@ -405,7 +435,26 @@ function upsertLocalTicket(ticket) {
   saveOfflineTickets();
   updateTicketStats();
 }
+  */
 
+function upsertLocalTicket(ticket) {
+  const index = offlineTickets.findIndex(
+    localTicket =>
+      sameValue(localTicket.id, ticket.id) &&
+      sameValue(localTicket.id_evento, ticket.id_evento) &&
+      sameValue(localTicket.id_productora, ticket.id_productora)
+  );
+
+  if (index >= 0) {
+    offlineTickets[index] = ticket;
+  } else {
+    offlineTickets.push(ticket);
+  }
+
+  updateTicketStats();
+}
+
+/*
 async function markTicketAsUsed(ticket) {
   const usedAt = new Date().toISOString();
 
@@ -456,6 +505,43 @@ async function markTicketAsUsed(ticket) {
   upsertLocalTicket(data);
   return data;
 }
+  */
+
+
+async function markTicketAsUsed(ticket) {
+  if (!navigator.onLine) {
+    throw new Error("SIN INTERNET: acceso no autorizado");
+  }
+
+  const usedAt = new Date().toISOString();
+
+  const { data, error } = await supabaseClient
+    .from("qr_valida_tickets")
+    .update({
+      used: true,
+      used_at: usedAt
+    })
+    .eq("id", ticket.id)
+    .eq("id_evento", currentUser.id_evento)
+    .eq("id_productora", currentUser.id_productora)
+    .or("used.eq.false,used.is.null")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    const refreshed = await getTicket(ticket.id);
+    return {
+      duplicate: true,
+      ticket: refreshed || ticket
+    };
+  }
+
+  upsertLocalTicket(data);
+  return data;
+}
+
 
 async function validateTicket() {
   if (isValidating) return;
@@ -856,12 +942,19 @@ async function logout() {
   location.href = "https://www.cosmicpass.space";
 }
 
+/*
 window.addEventListener("online", async () => {
   addLog("🟢 Internet restaurado");
   updateConnectionStatus();
   await syncPendingTickets();
   await syncOfflineTickets();
 });
+*/
+window.addEventListener("online", () => {
+  addLog("🟢 Internet restaurado");
+  updateConnectionStatus();
+});
+
 
 window.addEventListener("offline", () => {
   addLog("🟠 Modo offline activado");
@@ -880,7 +973,7 @@ window.addEventListener("load", async () => {
   addLog(`🔐 ${currentUser.nombre || "Operador"}`);
 
   await syncPendingTickets();
-  await syncOfflineTickets();
+  //await syncOfflineTickets();
   await startScanner();
 });
 
