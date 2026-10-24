@@ -951,7 +951,7 @@ async function startScanner() {
 
         if (
           decodedText === lastScan &&
-          now - lastScanTime < 3000
+          now - lastScanTime < 5000
         ) {
           return;
         }
