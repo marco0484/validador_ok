@@ -400,6 +400,7 @@ async function getTicket(ticketId) {
 }
   */
 
+/*
 async function getTicket(ticketId) {
   if (!navigator.onLine) {
     throw new Error("SIN INTERNET: no se puede validar el acceso");
@@ -411,6 +412,42 @@ async function getTicket(ticketId) {
     .eq("id", ticketId)
     .eq("id_evento", currentUser.id_evento)
     .eq("id_productora", currentUser.id_productora)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+*/
+
+async function getTicket(ticketId) {
+  if (!navigator.onLine) {
+    throw new Error("SIN INTERNET: no se puede validar el acceso");
+  }
+
+  const idEvento = currentUser?.id_evento;
+  const idProductora = currentUser?.id_productora;
+
+  if (
+    idEvento == null ||
+    idProductora == null ||
+    String(idEvento).trim() === "" ||
+    String(idEvento).trim() === "null" ||
+    String(idProductora).trim() === "" ||
+    String(idProductora).trim() === "null" ||
+    !/^\d+$/.test(String(idEvento)) ||
+    !/^\d+$/.test(String(idProductora))
+  ) {
+    throw new Error(
+      `Sesión incompleta: id_evento=${idEvento}, id_productora=${idProductora}`
+    );
+  }
+
+  const { data, error } = await supabaseClient
+    .from("qr_valida_tickets")
+    .select("*")
+    .eq("id", ticketId)
+    .eq("id_evento", Number(idEvento))
+    .eq("id_productora", Number(idProductora))
     .maybeSingle();
 
   if (error) throw error;
