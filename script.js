@@ -972,7 +972,7 @@ window.addEventListener("load", async () => {
   renderUserData();
   addLog(`🔐 ${currentUser.nombre || "Operador"}`);
 
-  await syncPendingTickets();
+  //await syncPendingTickets();
   //await syncOfflineTickets();
   await startScanner();
 });
