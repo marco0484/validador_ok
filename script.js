@@ -690,17 +690,27 @@ try {
       `✅ ${currentUser.nombre} autorizó ${updatedTicket.id} (${displayName})`
     );
     clearTicketInput();
-  } catch (error) {
-    console.error("Error validando ticket:", error);
-    triggerAlert();
-    updateStatus(
-      "error",
-      "ERROR DE VALIDACIÓN",
-      "No fue posible validar el ticket",
-      "TRY AGAIN"
-    );
-    addLog("❌ Error durante la validación");
-  } finally {
+  }  catch (error) {
+  console.error("Error validando ticket:", error);
+  console.error("Detalles:", {
+    message: error?.message,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    id_evento: currentUser?.id_evento,
+    id_productora: currentUser?.id_productora
+  });
+
+  triggerAlert();
+
+  updateStatus(
+    "error",
+    "ERROR DE VALIDACIÓN",
+    error?.message || "Error desconocido",
+    error?.code || "REVISA CONSOLA"
+  );
+
+  addLog(`❌ ${error?.code || "ERROR"}: ${error?.message || "Error desconocido"}`);finally {
     isValidating = false;
     if (validateBtn) validateBtn.disabled = false;
   }
