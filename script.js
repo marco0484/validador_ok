@@ -1013,9 +1013,9 @@ window.addEventListener("offline", () => {
   updateTicketStats();
 });
 
+
 window.addEventListener("load", async () => {
   updateConnectionStatus();
-  updateTicketStats();
 
   const validSession = await validarSesion();
   if (!validSession) return;
@@ -1023,10 +1023,10 @@ window.addEventListener("load", async () => {
   renderUserData();
   addLog(`🔐 ${currentUser.nombre || "Operador"}`);
 
-  //await syncPendingTickets();
-  //await syncOfflineTickets();
+  await syncOfflineTickets();
   await startScanner();
 });
+
 
 validateBtn?.addEventListener("click", validateTicket);
 
