@@ -714,10 +714,11 @@ try {
     addLog(
       `❌ ${error?.code || "ERROR"}: ${error?.message || "Error desconocido"}`
     );
-  } finally {
+   } finally {
     isValidating = false;
     if (validateBtn) validateBtn.disabled = false;
   }
+}
 
 function showDuplicate(ticket) {
   dupCount += 1;
@@ -1029,12 +1030,11 @@ window.addEventListener("load", async () => {
 
 validateBtn?.addEventListener("click", validateTicket);
 
- ticketInput?.addEventListener("keydown", event => {
+ticketInput?.addEventListener("keydown", event => {
   if (event.key === "Enter") {
     event.preventDefault();
     validateTicket();
   }
 });
-}
 
 logoutBtn?.addEventListener("click", logout);
